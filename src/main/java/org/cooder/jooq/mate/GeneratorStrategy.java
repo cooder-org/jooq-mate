@@ -49,7 +49,7 @@ public class GeneratorStrategy {
     private boolean generatePojo = true;
 
     private UnaryOperator<String> interfaceNameCoverter;
-
+    private UnaryOperator<String> recordNameCoverter;
     private UnaryOperator<String> pojoNameCoverter;
 
     public GeneratorStrategy withIndent(String indent) {
@@ -69,6 +69,11 @@ public class GeneratorStrategy {
 
     public GeneratorStrategy withInterfaceNameConverter(UnaryOperator<String> tableNameCoverter) {
         this.interfaceNameCoverter = tableNameCoverter;
+        return this;
+    }
+
+    public GeneratorStrategy withRecordNameConverter(UnaryOperator<String> recordNameCoverter) {
+        this.recordNameCoverter = recordNameCoverter;
         return this;
     }
 
@@ -165,11 +170,18 @@ public class GeneratorStrategy {
         return StringUtils.toCamelCase(tableName);
     }
 
+    public String convertRecordName(String tableName) {
+        if(recordNameCoverter != null) {
+            return recordNameCoverter.apply(tableName);
+        }
+        return convertInterfaceName(tableName) + "Record";
+    }
+
     public String convertPojoName(String tableName) {
         if(pojoNameCoverter != null) {
             return pojoNameCoverter.apply(tableName);
         }
-        return convertInterfaceName(tableName);
+        return convertInterfaceName(tableName) + "Entity";
     }
 
     @Data

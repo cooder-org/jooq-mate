@@ -80,7 +80,7 @@ public class TypeGenerator {
 
         generateGetterSetter(ts, fields, INTERFACE);
 
-        output(strategy.getPackageName(), ts.build());
+        output(interfacePackageName(tableName), ts.build());
     }
 
     public void generateRecord(String tableName, Field<?>[] fields) throws IOException {
@@ -207,6 +207,10 @@ public class TypeGenerator {
         return ts == null ? "" : ts.getSubPackageName();
     }
 
+    public String interfacePackageName(String tableName) {
+        return strategy.getPackageName() + subpackage(tableName);
+    }
+
     public String pojoPackageName(String tableName) {
         return strategy.getPackageName() + ".pojos" + subpackage(tableName);
     }
@@ -220,15 +224,15 @@ public class TypeGenerator {
     }
 
     public String recordClazzName(String tableName) {
-        return interfaceClazzName(tableName) + "Record";
+        return strategy.convertRecordName(tableName);
     }
 
     public String pojoClazzName(String tableName) {
-        return strategy.convertPojoName(tableName) + "Entity";
+        return strategy.convertPojoName(tableName);
     }
 
     public ClassName interfaceClassName(String tableName) {
-        return ClassName.get(strategy.getPackageName(), interfaceClazzName(tableName));
+        return ClassName.get(interfacePackageName(tableName), interfaceClazzName(tableName));
     }
 
     public ClassName recordClassName(String tableName) {
