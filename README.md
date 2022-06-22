@@ -1,5 +1,8 @@
 # jooq-mate
 
+![build](https://github.com/cooder-org/jooq-mate/actions/workflows/maven.yml/badge.svg)
+[![codecov](https://codecov.io/gh/cooder-org/jooq-mate/branch/main/graph/badge.svg?token=0L2AU184LV)](https://codecov.io/gh/cooder-org/jooq-mate)
+[![Maven Central](https://img.shields.io/maven-central/v/org.cooder/jooq-mate.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22org.cooder%22%20AND%20a:%22jooq-mate%22)
 
 ## quick start
 
