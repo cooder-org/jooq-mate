@@ -22,7 +22,6 @@ import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeSpec;
 
-@lombok.Builder
 public class TypeGenerator {
     private static final int INTERFACE = 1;
     private static final int RECORD = 2;
@@ -41,8 +40,12 @@ public class TypeGenerator {
     public void generateTables(String tablesClassName) throws Exception {
         java.lang.reflect.Field[] fs = Class.forName(tablesClassName).getDeclaredFields();
         for (java.lang.reflect.Field f : fs) {
-            TableImpl<?> table = (TableImpl<?>) f.get(null);
-            generateTable(table);
+            if((f.getModifiers() & java.lang.reflect.Modifier.PUBLIC) > 0) {
+                Object table = f.get(null);
+                if(table instanceof TableImpl) {
+                    generateTable((TableImpl<?>) table);
+                }
+            }
         }
     }
 

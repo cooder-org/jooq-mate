@@ -9,8 +9,7 @@ import java.util.Objects;
 
 import org.springframework.beans.BeanUtils;
 
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.Getter;
 import lombok.experimental.SuperBuilder;
 
 public abstract class AbstractRecord<T> {
@@ -120,13 +119,12 @@ public abstract class AbstractRecord<T> {
         return pojo;
     }
 
-    @Data
+    @Getter
     @SuperBuilder
-    @NoArgsConstructor
     public static class Field {
-        String name;
-        String desc;
-        Class<?> type;
+        private final String name;
+        private final String desc;
+        private final Class<?> type;
     }
 
     private static Object getValue(Object pojo, String fieldName) {

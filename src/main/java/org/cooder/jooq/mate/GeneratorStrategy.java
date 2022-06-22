@@ -13,7 +13,6 @@ import org.jooq.tools.StringUtils;
 
 import com.squareup.javapoet.ClassName;
 
-import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -184,9 +183,10 @@ public class GeneratorStrategy {
         return convertInterfaceName(tableName) + "Entity";
     }
 
-    @Data
+    @Setter
     @Accessors(chain = true)
     public static class TableStrategy {
+        @Getter
         private String subPackageName = "";
         private Set<String> ignoreFieldNames = new HashSet<>();
 
@@ -195,7 +195,10 @@ public class GeneratorStrategy {
         private Boolean generateRecord;
         private Boolean generatePojo;
 
+        @Getter
         private String[] generatedInterfaceSuperInterfaces = new String[0];
+
+        @Getter
         private String generatedPojoSuperClass = "";
 
         public TableStrategy ignoreFieldNames(String... fields) {

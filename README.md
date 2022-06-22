@@ -15,7 +15,7 @@
 </dependency>
 ```
 
-1、usage  
+1、usage (please refer to test cases for more)
 ```java
         //
         // Tables.java is jooq:codegen generated class
