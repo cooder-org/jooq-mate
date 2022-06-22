@@ -1,7 +1,18 @@
 # jooq-mate
 
 
-## Usage
+## quick start
+
+0、config (maven)  
+```xml
+<dependency>
+  <groupId>org.cooder</groupId>
+  <artifactId>jooq-mate</artifactId>
+  <version>${version}</version>
+</dependency>
+```
+
+1、usage  
 ```java
         //
         // Tables.java is jooq:codegen generated class
