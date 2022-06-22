@@ -37,8 +37,8 @@ public class JooqGeneratorMateTest {
                     .includeTableNames(
                             Tables.HOUSE_LAYOUT.getName(),
                             Tables.SPACE.getName())
-                    .withtableStrategy(Tables.HOUSE_LAYOUT.getName(), houseStategy)
-                    .withtableStrategy(Tables.SPACE.getName(), houseStategy);
+                    .withTableStrategy(Tables.HOUSE_LAYOUT.getName(), houseStategy)
+                    .withTableStrategy(Tables.SPACE.getName(), houseStategy);
 
             TypeGenerator generator = new TypeGenerator(strategy);
 

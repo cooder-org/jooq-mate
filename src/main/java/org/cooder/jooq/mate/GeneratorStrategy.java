@@ -47,9 +47,9 @@ public class GeneratorStrategy {
     @Accessors(fluent = true)
     private boolean generatePojo = true;
 
-    private UnaryOperator<String> interfaceNameCoverter;
-    private UnaryOperator<String> recordNameCoverter;
-    private UnaryOperator<String> pojoNameCoverter;
+    private UnaryOperator<String> interfaceNameConverter;
+    private UnaryOperator<String> recordNameConverter;
+    private UnaryOperator<String> pojoNameConverter;
 
     public GeneratorStrategy withIndent(String indent) {
         this.indent = indent;
@@ -66,22 +66,22 @@ public class GeneratorStrategy {
         return this;
     }
 
-    public GeneratorStrategy withInterfaceNameConverter(UnaryOperator<String> tableNameCoverter) {
-        this.interfaceNameCoverter = tableNameCoverter;
+    public GeneratorStrategy withInterfaceNameConverter(UnaryOperator<String> tableNameConverter) {
+        this.interfaceNameConverter = tableNameConverter;
         return this;
     }
 
-    public GeneratorStrategy withRecordNameConverter(UnaryOperator<String> recordNameCoverter) {
-        this.recordNameCoverter = recordNameCoverter;
+    public GeneratorStrategy withRecordNameConverter(UnaryOperator<String> recordNameConverter) {
+        this.recordNameConverter = recordNameConverter;
         return this;
     }
 
-    public GeneratorStrategy withPojoNameCoverter(UnaryOperator<String> pojoNameCoverter) {
-        this.pojoNameCoverter = pojoNameCoverter;
+    public GeneratorStrategy withPojoNameConverter(UnaryOperator<String> pojoNameConverter) {
+        this.pojoNameConverter = pojoNameConverter;
         return this;
     }
 
-    public GeneratorStrategy withtableStrategy(String tableName, TableStrategy ts) {
+    public GeneratorStrategy withTableStrategy(String tableName, TableStrategy ts) {
         this.tableStrategies.put(tableName, ts);
         return this;
     }
@@ -163,22 +163,22 @@ public class GeneratorStrategy {
     }
 
     public String convertInterfaceName(String tableName) {
-        if(interfaceNameCoverter != null) {
-            return interfaceNameCoverter.apply(tableName);
+        if(interfaceNameConverter != null) {
+            return interfaceNameConverter.apply(tableName);
         }
         return StringUtils.toCamelCase(tableName);
     }
 
     public String convertRecordName(String tableName) {
-        if(recordNameCoverter != null) {
-            return recordNameCoverter.apply(tableName);
+        if(recordNameConverter != null) {
+            return recordNameConverter.apply(tableName);
         }
         return convertInterfaceName(tableName) + "Record";
     }
 
     public String convertPojoName(String tableName) {
-        if(pojoNameCoverter != null) {
-            return pojoNameCoverter.apply(tableName);
+        if(pojoNameConverter != null) {
+            return pojoNameConverter.apply(tableName);
         }
         return convertInterfaceName(tableName) + "Entity";
     }
@@ -226,5 +226,4 @@ public class GeneratorStrategy {
             return ignoreFieldNames.contains(fieldName);
         }
     }
-
 }

@@ -37,7 +37,7 @@
 
                     return name;
                 })
-                .withPojoNameCoverter(tableName -> {
+                .withPojoNameConverter(tableName -> {
                     String name = StringUtils.toCamelCase(tableName);
                     if(name.equals("DesignPlan")) {
                         return "Plan";
