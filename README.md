@@ -17,38 +17,38 @@
 
 1、usage (please refer to test cases for more)
 ```java
-        //
-        // Tables.java is jooq:codegen generated class
-        //
-        TableStrategy houseStategy = new TableStrategy().setSubPackageName(".house");
+//
+// Tables.class is jooq:codegen generated class
+//
+TableStrategy houseStategy = new TableStrategy().setSubPackageName(".house");
 
-        GeneratorStrategy strategy = new GeneratorStrategy()
-                .withDirectory("./src/codegen/java/")
-                .withPackageName("org.cooder.jooqmate.type")
-                .generatePojoWithLombok(false)
-                .generateInterface(false)
-                .generatePojo(false)
-                .generateRecord(true)
-                .withInterfaceNameConverter((s, tableName) -> {
-                    String name = StringUtils.toCamelCase(tableName);
-                    if(name.equals("DesignPlan")) {
-                        return "Plan";
-                    }
+GeneratorStrategy strategy = new GeneratorStrategy()
+        .withDirectory("./src/codegen/java/")
+        .withPackageName("org.cooder.jooqmate.type")
+        .generatePojoWithLombok(false)
+        .generateInterface(false)
+        .generatePojo(false)
+        .generateRecord(true)
+        .withInterfaceNameConverter((s, tableName) -> {
+            String name = StringUtils.toCamelCase(tableName);
+            if(name.equals("DesignPlan")) {
+                return "Plan";
+            }
 
-                    return name;
-                })
-                .withPojoNameConverter((s, tableName) -> {
-                    String name = StringUtils.toCamelCase(tableName);
-                    if(name.equals("DesignPlan")) {
-                        return "Plan";
-                    }
-                    return name;
-                })
-                .ignoreFieldNames("id", "cuid", "cu_name", "muid", "mu_name", "ctime", "mtime")
-                .includeTableNames(Tables.SPACE.getName())
-                .withTableStrategy(Tables.SPACE.getName(), houseStategy);
+            return name;
+        })
+        .withPojoNameConverter((s, tableName) -> {
+            String name = StringUtils.toCamelCase(tableName);
+            if(name.equals("DesignPlan")) {
+                return "Plan";
+            }
+            return name;
+        })
+        .ignoreFieldNames("id", "cuid", "cu_name", "muid", "mu_name", "ctime", "mtime")
+        .includeTableNames(Tables.SPACE.getName())
+        .withTableStrategy(Tables.SPACE.getName(), houseStategy);
 
-        TypeGenerator generator = new TypeGenerator(strategy);
+TypeGenerator generator = new TypeGenerator(strategy);
 
-        generator.generateTables(Tables.class.getName());
+generator.generateTables(Tables.class.getName());
 ```
