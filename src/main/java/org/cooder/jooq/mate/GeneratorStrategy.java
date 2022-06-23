@@ -7,11 +7,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.UnaryOperator;
+import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 
 import org.jooq.tools.StringUtils;
 
 import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.ParameterizedTypeName;
+import com.squareup.javapoet.TypeName;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -47,9 +50,9 @@ public class GeneratorStrategy {
     @Accessors(fluent = true)
     private boolean generatePojo = true;
 
-    private UnaryOperator<String> interfaceNameConverter;
-    private UnaryOperator<String> recordNameConverter;
-    private UnaryOperator<String> pojoNameConverter;
+    private NameConverter interfaceNameConverter;
+    private NameConverter recordNameConverter;
+    private NameConverter pojoNameConverter;
 
     public GeneratorStrategy withIndent(String indent) {
         this.indent = indent;
@@ -66,17 +69,17 @@ public class GeneratorStrategy {
         return this;
     }
 
-    public GeneratorStrategy withInterfaceNameConverter(UnaryOperator<String> tableNameConverter) {
+    public GeneratorStrategy withInterfaceNameConverter(NameConverter tableNameConverter) {
         this.interfaceNameConverter = tableNameConverter;
         return this;
     }
 
-    public GeneratorStrategy withRecordNameConverter(UnaryOperator<String> recordNameConverter) {
+    public GeneratorStrategy withRecordNameConverter(NameConverter recordNameConverter) {
         this.recordNameConverter = recordNameConverter;
         return this;
     }
 
-    public GeneratorStrategy withPojoNameConverter(UnaryOperator<String> pojoNameConverter) {
+    public GeneratorStrategy withPojoNameConverter(NameConverter pojoNameConverter) {
         this.pojoNameConverter = pojoNameConverter;
         return this;
     }
@@ -130,29 +133,30 @@ public class GeneratorStrategy {
         return ts == null ? generatePojo : ts.isGeneratePojo(generatePojo);
     }
 
-    public List<ClassName> getGeneratedInterfaceSuperInterfaces(String tableName) {
+    public List<TypeName> getGeneratedInterfaceSuperInterfaces(String tableName) {
         String[] ss = new String[0];
         TableStrategy ts = getTableStrategy(tableName);
         if(ts != null) {
             ss = ts.getGeneratedInterfaceSuperInterfaces();
         }
 
-        List<ClassName> ret = new ArrayList<>();
+        ClassName itc = interfaceClassName(tableName);
+        List<TypeName> ret = new ArrayList<>();
         for (String s : ss) {
-            ret.add(ClassName.bestGuess(s));
+            ret.add(typeNameFrom(itc, s));
         }
         return ret;
     }
 
-    public ClassName getPojoSuperClass(String tableName) {
+    public TypeName getPojoSuperClass(String tableName) {
         String sc = "";
         TableStrategy ts = getTableStrategy(tableName);
         if(ts != null) {
             sc = ts.getGeneratedPojoSuperClass();
         }
-
+        ClassName pjc = pojoClassName(tableName);
         if(!StringUtils.isEmpty(sc)) {
-            return ClassName.bestGuess(sc);
+            return typeNameFrom(pjc, sc);
         } else {
             return null;
         }
@@ -164,23 +168,88 @@ public class GeneratorStrategy {
 
     public String convertInterfaceName(String tableName) {
         if(interfaceNameConverter != null) {
-            return interfaceNameConverter.apply(tableName);
+            return interfaceNameConverter.apply(this, tableName);
         }
         return StringUtils.toCamelCase(tableName);
     }
 
     public String convertRecordName(String tableName) {
         if(recordNameConverter != null) {
-            return recordNameConverter.apply(tableName);
+            return recordNameConverter.apply(this, tableName);
         }
         return convertInterfaceName(tableName) + "Record";
     }
 
     public String convertPojoName(String tableName) {
         if(pojoNameConverter != null) {
-            return pojoNameConverter.apply(tableName);
+            return pojoNameConverter.apply(this, tableName);
         }
         return convertInterfaceName(tableName) + "Entity";
+    }
+
+    public String subpackage(String tableName) {
+        TableStrategy ts = getTableStrategy(tableName);
+        return ts == null ? "" : ts.getSubPackageName();
+    }
+
+    public String interfacePackageName(String tableName) {
+        return getPackageName() + subpackage(tableName);
+    }
+
+    public String pojoPackageName(String tableName) {
+        return getPackageName() + ".pojos" + subpackage(tableName);
+    }
+
+    public String recordPackageName(String tableName) {
+        return getPackageName() + ".records" + subpackage(tableName);
+    }
+
+    public String interfaceClazzName(String tableName) {
+        return convertInterfaceName(tableName);
+    }
+
+    public String recordClazzName(String tableName) {
+        return convertRecordName(tableName);
+    }
+
+    public String pojoClazzName(String tableName) {
+        return convertPojoName(tableName);
+    }
+
+    public ClassName interfaceClassName(String tableName) {
+        return ClassName.get(interfacePackageName(tableName), interfaceClazzName(tableName));
+    }
+
+    public ClassName recordClassName(String tableName) {
+        return ClassName.get(recordPackageName(tableName), recordClazzName(tableName));
+    }
+
+    public ClassName pojoClassName(String tableName) {
+        return ClassName.get(pojoPackageName(tableName), pojoClazzName(tableName));
+    }
+
+    private TypeName typeNameFrom(ClassName itc, String name) {
+        int idx = name.indexOf('<');
+        if(idx >= 0) {
+            ClassName base = ClassName.bestGuess(name.substring(0, idx));
+            String gps = name.substring(idx + 1, name.lastIndexOf('>')).trim();
+            if(StringUtils.isEmpty(gps)) {
+                return ParameterizedTypeName.get(base, itc);
+            } else {
+                String[] parameters = gps.split(",");
+                List<TypeName> typeNames = Arrays.asList(parameters).stream()
+                        .map(p -> typeNameFrom(itc, p))
+                        .collect(Collectors.toList());
+                return ParameterizedTypeName.get(base, typeNames.toArray(new TypeName[0]));
+            }
+        } else {
+            return ClassName.bestGuess(name);
+        }
+    }
+
+    @FunctionalInterface
+    public static interface NameConverter extends BiFunction<GeneratorStrategy, String, String> {
+
     }
 
     @Setter

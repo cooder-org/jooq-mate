@@ -7,7 +7,6 @@ import java.util.stream.Collectors;
 
 import javax.lang.model.element.Modifier;
 
-import org.cooder.jooq.mate.GeneratorStrategy.TableStrategy;
 import org.jooq.Field;
 import org.jooq.impl.TableImpl;
 import org.jooq.tools.StringUtils;
@@ -20,6 +19,7 @@ import com.squareup.javapoet.FieldSpec.Builder;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
+import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 
 public class TypeGenerator {
@@ -75,7 +75,7 @@ public class TypeGenerator {
     }
 
     public void generateInterface(String tableName, Field<?>[] fields) throws IOException {
-        String clazzName = interfaceClazzName(tableName);
+        String clazzName = strategy.interfaceClazzName(tableName);
         TypeSpec.Builder ts = TypeSpec.interfaceBuilder(clazzName)
                 .addModifiers(Modifier.PUBLIC);
 
@@ -83,31 +83,31 @@ public class TypeGenerator {
 
         generateGetterSetter(ts, fields, INTERFACE);
 
-        output(interfacePackageName(tableName), ts.build());
+        output(strategy.interfacePackageName(tableName), ts.build());
     }
 
     public void generateRecord(String tableName, Field<?>[] fields) throws IOException {
-        String clazz = recordClazzName(tableName);
-        ClassName genericType = pojoClassName(tableName);
+        String clazz = strategy.recordClazzName(tableName);
+        ClassName genericType = strategy.pojoClassName(tableName);
         TypeSpec.Builder ts = TypeSpec.classBuilder(clazz)
                 .addModifiers(Modifier.PUBLIC)
                 .superclass(ParameterizedTypeName.get(ClassName.get(AbstractRecord.class), genericType))
-                .addSuperinterface(interfaceClassName(tableName));
+                .addSuperinterface(strategy.interfaceClassName(tableName));
 
         ts.addField(generateRecordFields(fields));
         ts.addMethod(generateRecordConstructor(genericType));
         generateGetterSetter(ts, fields, RECORD);
 
-        output(recordPackageName(tableName), ts.build());
+        output(strategy.recordPackageName(tableName), ts.build());
     }
 
     public void generatePojo(String tableName, Field<?>[] fields) throws IOException {
-        ClassName pojoCN = pojoClassName(tableName);
+        ClassName pojoCN = strategy.pojoClassName(tableName);
         TypeSpec.Builder ts = TypeSpec.classBuilder(pojoCN.simpleName())
                 .addModifiers(Modifier.PUBLIC)
-                .addSuperinterface(interfaceClassName(tableName));
+                .addSuperinterface(strategy.interfaceClassName(tableName));
 
-        ClassName superClass = strategy.getPojoSuperClass(tableName);
+        TypeName superClass = strategy.getPojoSuperClass(tableName);
         if(superClass != null) {
             ts.superclass(superClass);
         }
@@ -124,7 +124,7 @@ public class TypeGenerator {
             generateGetterSetter(ts, fields, POJO);
         }
 
-        output(pojoPackageName(tableName), ts.build());
+        output(strategy.pojoPackageName(tableName), ts.build());
     }
 
     protected void generatePojoFields(TypeSpec.Builder ts, Field<?>[] fields) {
@@ -203,47 +203,6 @@ public class TypeGenerator {
         }
 
         return b.build();
-    }
-
-    protected String subpackage(String tableName) {
-        TableStrategy ts = strategy.getTableStrategy(tableName);
-        return ts == null ? "" : ts.getSubPackageName();
-    }
-
-    public String interfacePackageName(String tableName) {
-        return strategy.getPackageName() + subpackage(tableName);
-    }
-
-    public String pojoPackageName(String tableName) {
-        return strategy.getPackageName() + ".pojos" + subpackage(tableName);
-    }
-
-    public String recordPackageName(String tableName) {
-        return strategy.getPackageName() + ".records" + subpackage(tableName);
-    }
-
-    public String interfaceClazzName(String tableName) {
-        return strategy.convertInterfaceName(tableName);
-    }
-
-    public String recordClazzName(String tableName) {
-        return strategy.convertRecordName(tableName);
-    }
-
-    public String pojoClazzName(String tableName) {
-        return strategy.convertPojoName(tableName);
-    }
-
-    public ClassName interfaceClassName(String tableName) {
-        return ClassName.get(interfacePackageName(tableName), interfaceClazzName(tableName));
-    }
-
-    public ClassName recordClassName(String tableName) {
-        return ClassName.get(recordPackageName(tableName), recordClazzName(tableName));
-    }
-
-    public ClassName pojoClassName(String tableName) {
-        return ClassName.get(pojoPackageName(tableName), pojoClazzName(tableName));
     }
 
     private void output(String packageName, TypeSpec typeSpec) throws IOException {

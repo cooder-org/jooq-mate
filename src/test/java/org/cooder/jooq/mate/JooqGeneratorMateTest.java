@@ -17,7 +17,12 @@ public class JooqGeneratorMateTest {
 
         boolean hasException = false;
         try {
-            TableStrategy houseStategy = new TableStrategy().setSubPackageName(".house");
+            TableStrategy houseStategy = new TableStrategy()
+                    .setSubPackageName(".house")
+                    .setGeneratedInterfaceSuperInterfaces(
+                            new String[] { "java.util.List<>", "java.lang.Serializable", "java.util.function.Function<String,String>" })
+                    .setGeneratedPojoSuperClass("org.cooder.type.pojos.EntityBase");
+
             GeneratorStrategy strategy = new GeneratorStrategy()
                     .withDirectory(directory)
                     .withPackageName(packageName)
@@ -25,13 +30,19 @@ public class JooqGeneratorMateTest {
                     .generateInterface(true)
                     .generatePojo(true)
                     .generateRecord(true)
-                    .withInterfaceNameConverter(tableName -> {
+                    .withInterfaceNameConverter((sg, tableName) -> {
                         String name = StringUtils.toCamelCase(tableName);
                         if(name.equals("Space")) {
                             return "HouseSpace";
                         }
 
                         return name;
+                    })
+                    .withPojoNameConverter((sg, tableName) -> {
+                        return sg.interfaceClazzName(tableName) + "Entity";
+                    })
+                    .withRecordNameConverter((sg, tableName) -> {
+                        return sg.interfaceClazzName(tableName) + "Record";
                     })
                     .ignoreFieldNames("id", "cuid", "cu_name", "muid", "mu_name", "ctime", "mtime")
                     .includeTableNames(
