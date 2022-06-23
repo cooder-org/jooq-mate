@@ -29,7 +29,7 @@
                 .generateInterface(false)
                 .generatePojo(false)
                 .generateRecord(true)
-                .withInterfaceNameConverter(tableName -> {
+                .withInterfaceNameConverter((s, tableName) -> {
                     String name = StringUtils.toCamelCase(tableName);
                     if(name.equals("DesignPlan")) {
                         return "Plan";
@@ -37,7 +37,7 @@
 
                     return name;
                 })
-                .withPojoNameConverter(tableName -> {
+                .withPojoNameConverter((s, tableName) -> {
                     String name = StringUtils.toCamelCase(tableName);
                     if(name.equals("DesignPlan")) {
                         return "Plan";
@@ -46,7 +46,7 @@
                 })
                 .ignoreFieldNames("id", "cuid", "cu_name", "muid", "mu_name", "ctime", "mtime")
                 .includeTableNames(Tables.SPACE.getName())
-                .withtableStrategy(Tables.SPACE.getName(), houseStategy);
+                .withTableStrategy(Tables.SPACE.getName(), houseStategy);
 
         TypeGenerator generator = new TypeGenerator(strategy);
 
