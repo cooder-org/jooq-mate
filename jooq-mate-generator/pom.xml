@@ -2,107 +2,57 @@
 
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <parent>
+    <groupId>org.cooder</groupId>
+    <artifactId>jooq-mate</artifactId>
+    <version>2.0.0-SNAPSHOT</version>
+  </parent>
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>org.cooder</groupId>
-  <artifactId>jooq-mate</artifactId>
-  <version>2.0.0-SNAPSHOT</version>
+  <artifactId>jooq-mate-generator</artifactId>
 
-  <name>jooq-mate</name>
-  <description>jooq mate library</description>
-  <packaging>pom</packaging>
-  <url>https://github.com/cooder-org/jooq-mate</url>
+  <name>jooq-mate-generator</name>
+  <packaging>jar</packaging>
 
   <properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <maven.compiler.source>1.8</maven.compiler.source>
-    <maven.compiler.target>1.8</maven.compiler.target>
-    <jooq.version>3.14.15</jooq.version>
-    <lombok.version>1.18.10</lombok.version>
-    <git.url>https://github.com/cooder-org/jooq-mate</git.url>
-    <git.connection>scm:git:github.com:cooder-org/jooq-mate.git</git.connection>
-    <git.developerConnection>scm:git:git@github.com:cooder-org/jooq-mate.git</git.developerConnection>
   </properties>
 
-  <modules>
-    <module>jooq-mate-types</module>
-    <module>jooq-mate-generator</module>
-  </modules>
-
-  <licenses>
-    <license>
-      <name>The Apache Software License, Version 2.0</name>
-      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-    </license>
-  </licenses>
-
-  <developers>
-    <developer>
-      <name>yanxiyue</name>
-      <email>wuling@cooder.org</email>
-    </developer>
-  </developers>
-
-  <scm>
-    <url>${git.url}</url>
-    <connection>${git.connection}</connection>
-    <developerConnection>${git.developerConnection}</developerConnection>
-  </scm>
-
-  <distributionManagement>
-    <snapshotRepository>
-      <id>ossrh</id>
-      <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-    </snapshotRepository>
-    <repository>
-      <id>ossrh</id>
-      <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-    </repository>
-  </distributionManagement>
 
   <dependencies>
+    <dependency>
+      <groupId>org.cooder</groupId>
+      <artifactId>jooq-mate-types</artifactId>
+      <version>${project.parent.version}</version>
+    </dependency>
+
     <dependency>
       <groupId>org.projectlombok</groupId>
       <artifactId>lombok</artifactId>
       <optional>true</optional>
     </dependency>
+
+    <dependency>
+      <groupId>org.jooq</groupId>
+      <artifactId>jooq</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.jooq</groupId>
+      <artifactId>jooq-meta</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.squareup</groupId>
+      <artifactId>javapoet</artifactId>
+      <version>1.13.0</version>
+    </dependency>
+
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
-
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <groupId>org.projectlombok</groupId>
-        <artifactId>lombok</artifactId>
-        <version>${lombok.version}</version>
-        <optional>true</optional>
-      </dependency>
-
-      <dependency>
-        <groupId>org.springframework</groupId>
-        <artifactId>spring-beans</artifactId>
-        <version>5.3.20</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.jooq</groupId>
-        <artifactId>jooq</artifactId>
-        <version>${jooq.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.jooq</groupId>
-        <artifactId>jooq-meta</artifactId>
-        <version>${jooq.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>junit</groupId>
-        <artifactId>junit</artifactId>
-        <version>4.11</version>
-        <scope>test</scope>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
 
   <build>
     <plugins>
