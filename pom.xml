@@ -6,7 +6,7 @@
 
   <groupId>org.cooder</groupId>
   <artifactId>jooq-mate</artifactId>
-  <version>1.1.0-SNAPSHOT</version>
+  <version>1.1.0</version>
 
   <name>jooq-mate</name>
   <description>jooq mate library</description>
