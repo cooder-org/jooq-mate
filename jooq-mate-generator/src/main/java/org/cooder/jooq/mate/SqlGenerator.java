@@ -37,7 +37,7 @@ public class SqlGenerator {
                 fc.getFieldName(),
                 fc.getDataType(),
                 StringUtils.isEmpty(fc.getDefaultValue()) ? "" : "DEFAULT " + fc.getDefaultValue(),
-                fc.autoIncrement ? "AUTO_INCREMENT" : "",
+                fc.isAutoIncrement() ? "AUTO_INCREMENT" : "",
                 fc.getFieldNameDesc())));
 
         if(!StringUtils.isEmpty(tc.getPrimaryKey())) {

@@ -251,25 +251,25 @@ public class TypeGenerator {
 
     private void withConfig(final Config conf) {
         JooqMateConfig mc = conf.mateConfig;
-        this.strategy.withDirectory(mc.directory)
-                .withPackageName(mc.packageName)
-                .ignoreFieldNames(mc.ignoreFieldNames)
-                .includeTableNames(mc.includeTableNames)
-                .excludeTableNames(mc.excludeTableNames)
-                .generateInterface(mc.generateInterface)
-                .generateRecord(mc.generateRecord)
-                .generatePojo(mc.generatePojo)
-                .generatePojoWithLombok(mc.generatePojoWithLombok)
-                .withInterfaceNameConverter((s, tableName) -> conf.getTableConfig(tableName).jooqmateInterfaceName)
-                .withRecordNameConverter((s, tableName) -> conf.getTableConfig(tableName).jooqmateRecordName)
-                .withPojoNameConverter((s, tableName) -> conf.getTableConfig(tableName).jooqmatePojoName);
+        this.strategy.withDirectory(mc.getDirectory())
+                .withPackageName(mc.getPackageName())
+                .ignoreFieldNames(mc.getIgnoreFieldNames())
+                .includeTableNames(mc.getIncludeTableNames())
+                .excludeTableNames(mc.getExcludeTableNames())
+                .generateInterface(mc.isGenerateInterface())
+                .generateRecord(mc.isGenerateRecord())
+                .generatePojo(mc.isGeneratePojo())
+                .generatePojoWithLombok(mc.isGeneratePojoWithLombok())
+                .withInterfaceNameConverter((s, tableName) -> conf.getTableConfig(tableName).getJooqmateInterfaceName())
+                .withRecordNameConverter((s, tableName) -> conf.getTableConfig(tableName).getJooqmateRecordName())
+                .withPojoNameConverter((s, tableName) -> conf.getTableConfig(tableName).getJooqmatePojoName());
 
         for (TableConfig tc : conf.tables) {
-            this.strategy.withTableStrategy(tc.tableName, new TableStrategy()
-                    .setSubPackageName(tc.jooqmateSubpackage)
-                    .ignoreFieldNames(tc.jooqmateIgnoreFieldNames)
-                    .setGeneratedInterfaceSuperInterfaces(tc.jooqmateInterfaceSupers)
-                    .setGeneratedPojoSuperClass(tc.jooqmatePojoSuperClass));
+            this.strategy.withTableStrategy(tc.getTableName(), new TableStrategy()
+                    .setSubPackageName(tc.getJooqmateSubpackage())
+                    .ignoreFieldNames(tc.getJooqmateIgnoreFieldNames())
+                    .setGeneratedInterfaceSuperInterfaces(tc.getJooqmateInterfaceSupers())
+                    .setGeneratedPojoSuperClass(tc.getJooqmatePojoSuperClass()));
         }
     }
 
@@ -354,17 +354,17 @@ public class TypeGenerator {
 
         @Override
         public String getName() {
-            return tableConfig.tableName;
+            return tableConfig.getTableName();
         }
 
         @Override
         public String getComment() {
-            return String.format("%s<br>\n\n%s", tableConfig.tableNameDesc, tableConfig.tableDesc);
+            return String.format("%s<br>\n\n%s", tableConfig.getTableNameDesc(), tableConfig.getTableDesc());
         }
 
         @Override
         public FieldMeta[] fields() {
-            List<FieldConfig> fs = tableConfig.fields;
+            List<FieldConfig> fs = tableConfig.getFields();
             FieldMeta[] ret = new FieldMeta[fs.size()];
             for (int i = 0; i < ret.length; i++) {
                 ret[i] = new FieldConfigMeta(fs.get(i));
@@ -383,13 +383,13 @@ public class TypeGenerator {
 
         @Override
         public String getName() {
-            return fieldConfig.fieldName;
+            return fieldConfig.getFieldName();
         }
 
         @Override
         public Class<?> getType() {
             Class<?> clazz = null;
-            String dataType = fieldConfig.dataType.toUpperCase();
+            String dataType = fieldConfig.getDataType().toUpperCase();
             if(dataType.contains("BIGINT")) {
                 clazz = Long.class;
             } else if(dataType.contains("INT")) {
@@ -408,17 +408,17 @@ public class TypeGenerator {
         public String getComment() {
             boolean hasMore = false;
             StringBuilder sb = new StringBuilder();
-            sb.append(fieldConfig.fieldNameDesc).append("\n");
-            if(!StringUtils.isEmpty(fieldConfig.enums)) {
+            sb.append(fieldConfig.getFieldNameDesc()).append("\n");
+            if(!StringUtils.isEmpty(fieldConfig.getEnums())) {
                 sb.append('\n');
-                sb.append("取值说明: ").append(fieldConfig.enums).append("\n");
+                sb.append("取值说明: ").append(fieldConfig.getEnums()).append("\n");
                 hasMore = true;
             }
-            if(!StringUtils.isEmpty(fieldConfig.example)) {
+            if(!StringUtils.isEmpty(fieldConfig.getExample())) {
                 if(!hasMore) {
                     sb.append('\n');
                 }
-                sb.append("例如:  ").append(fieldConfig.example).append("\n");
+                sb.append("例如:  ").append(fieldConfig.getExample()).append("\n");
             }
 
             return sb.toString();

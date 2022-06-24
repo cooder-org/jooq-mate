@@ -8,12 +8,14 @@ import org.jooq.tools.StringUtils;
 import org.junit.Assert;
 import org.junit.Test;
 
+import picocli.CommandLine;
+
 public class JooqGeneratorMateTest {
 
     @Test
     public final void testGenerate() {
-        String directory = "./target/generated-test-sources/";
-        String packageName = "org.cooder.jooqmate.type";
+        String directory = "./target/generated-sources/";
+        String packageName = "org.cooder.jooq.type";
 
         boolean hasException = false;
         try {
@@ -60,20 +62,40 @@ public class JooqGeneratorMateTest {
         }
 
         Assert.assertEquals(false, hasException);
-        checkFileExist(directory + P(packageName + ".house"), "HouseLayout.java");
-        checkFileExist(directory + P(packageName + ".records.house"), "HouseLayoutRecord.java");
-        checkFileExist(directory + P(packageName + ".pojos.house"), "HouseLayoutEntity.java");
-        checkFileExist(directory + P(packageName + ".house"), "HouseSpace.java");
-        checkFileExist(directory + P(packageName + ".records.house"), "HouseSpaceRecord.java");
-        checkFileExist(directory + P(packageName + ".pojos.house"), "HouseSpaceEntity.java");
+        checkFileExistAndRemove(directory + P(packageName + ".house"), "HouseLayout.java");
+        checkFileExistAndRemove(directory + P(packageName + ".records.house"), "HouseLayoutRecord.java");
+        checkFileExistAndRemove(directory + P(packageName + ".pojos.house"), "HouseLayoutEntity.java");
+        checkFileExistAndRemove(directory + P(packageName + ".house"), "HouseSpace.java");
+        checkFileExistAndRemove(directory + P(packageName + ".records.house"), "HouseSpaceRecord.java");
+        checkFileExistAndRemove(directory + P(packageName + ".pojos.house"), "HouseSpaceEntity.java");
     }
 
-    private void checkFileExist(String dir, String name) {
+    private void checkFileExistAndRemove(String dir, String name) {
         File f = new File(dir + File.separator + name);
         Assert.assertEquals(true, f.exists());
+        f.delete();
     }
 
     private String P(String packageName) {
         return packageName.replace('.', '/');
+    }
+
+    @Test
+    public final void testGenerateByConfig() {
+        String directory = "./target/generated-sources/";
+        String packageName = "org.cooder.jooq.type";
+
+        String resourceName = "jooq-mate-config.xlsx";
+
+        String path = getClass().getClassLoader().getResource(resourceName).getFile();
+
+        File file = new File(path);
+
+        String[] args = new String[] { file.getAbsolutePath() };
+        new CommandLine(new MateGeneratorTool()).execute(args);
+
+        checkFileExistAndRemove(directory + P(packageName + ".house"), "HouseLayoutTest.java");
+        checkFileExistAndRemove(directory + P(packageName + ".records.house"), "HouseLayoutTestRecord.java");
+        checkFileExistAndRemove(directory + P(packageName + ".pojos.house"), "HouseLayoutTestEntity.java");
     }
 }

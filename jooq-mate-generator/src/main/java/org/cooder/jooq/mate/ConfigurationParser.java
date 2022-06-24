@@ -21,8 +21,9 @@ import com.alibaba.excel.metadata.data.ReadCellData;
 import com.alibaba.excel.read.metadata.ReadSheet;
 import com.alibaba.excel.read.metadata.holder.ReadRowHolder;
 
-import lombok.Data;
 import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 
@@ -150,7 +151,7 @@ public class ConfigurationParser {
                 }
 
                 TypeUtils.setValue(tableConfig, data.getConfigName(), value);
-                log.info("table config readed: {}", tableConfig);
+                log.info("table config readed, {} : {}", data.getConfigName(), value);
             }
         }
 
@@ -207,20 +208,23 @@ public class ConfigurationParser {
         }
     }
 
-    @Data
+    @Getter
+    @Setter
     public static class JooqConfig {
-        String sqlDialect;
-        String url;
-        String user;
-        String password;
-        String inputSchema;
-        String directory;
-        String packageName;
-        boolean generateRecords;
-        boolean generatePojos;
-        boolean generateDaos;
+        private String sqlDialect;
+        private String url;
+        private String user;
+        private String password;
+        private String inputSchema;
+        private String directory;
+        private String packageName;
+        private boolean generateRecords;
+        private boolean generatePojos;
+        private boolean generateDaos;
 
-        @Data
+        @Getter
+        @Setter
+        @ToString
         public static class Header {
             @ExcelProperty(value = "ConfigName", index = 0)
             String configName;
@@ -230,20 +234,23 @@ public class ConfigurationParser {
         }
     }
 
-    @Data
+    @Getter
+    @Setter
     public static class JooqMateConfig {
-        int indent;
-        String directory;
-        String packageName;
-        String[] ignoreFieldNames = new String[0];
-        String[] includeTableNames = new String[0];
-        String[] excludeTableNames = new String[0];
-        boolean generateInterface;
-        boolean generateRecord;
-        boolean generatePojo;
-        boolean generatePojoWithLombok;
+        private int indent;
+        private String directory;
+        private String packageName;
+        private String[] ignoreFieldNames = new String[0];
+        private String[] includeTableNames = new String[0];
+        private String[] excludeTableNames = new String[0];
+        private boolean generateInterface;
+        private boolean generateRecord;
+        private boolean generatePojo;
+        private boolean generatePojoWithLombok;
 
-        @Data
+        @Getter
+        @Setter
+        @ToString
         public static class Header {
             @ExcelProperty(value = "ConfigName", index = 0)
             String configName;
@@ -253,60 +260,72 @@ public class ConfigurationParser {
         }
     }
 
-    @lombok.Data
+    @lombok.Getter
+    @lombok.Setter
     public static class TableConfig {
-        String tableName;
-        String tableNameDesc;
-        String tableDesc;
-        String primaryKey;
-        UniqKey uniqueKey;
-        String engine;
-        String autoIncrement;
-        String defaultCharset;
-        int shardingCount;
-        String jooqDaoClass;
-        String jooqPojoClass;
-        String jooqPojoImplements;
-        String jooqmateSubpackage;
-        String[] jooqmateIgnoreFieldNames = new String[0];
-        String jooqmateInterfaceName;
-        String[] jooqmateInterfaceSupers = new String[0];
-        String jooqmateRecordName;
-        String jooqmatePojoName;
-        String jooqmatePojoSuperClass;
-        String jooqmatePojoImplements;
-        List<FieldConfig> fields = new ArrayList<>();
+        private String tableName;
+        private String tableNameDesc;
+        private String tableDesc;
+        private String primaryKey;
+        private UniqKey uniqueKey;
+        private String engine;
+        private String autoIncrement;
+        private String defaultCharset;
+        private int shardingCount;
+        private String jooqDaoClass;
+        private String jooqPojoClass;
+        private String jooqPojoImplements;
+        private String jooqmateSubpackage;
+        private String[] jooqmateIgnoreFieldNames = new String[0];
+        private String jooqmateInterfaceName;
+        private String[] jooqmateInterfaceSupers = new String[0];
+        private String jooqmateRecordName;
+        private String jooqmatePojoName;
+        private String jooqmatePojoSuperClass;
+        private String jooqmatePojoImplements;
+        private List<FieldConfig> fields = new ArrayList<>();
 
         public TableConfig addField(FieldConfig c) {
             this.fields.add(c);
             return this;
         }
 
-        @Data
+        @Getter
+        @Setter
         public static class UniqKey {
             String name;
             String value;
         }
 
-        @Data
+        @Getter
+        @Setter
+        @ToString
         public static class FieldConfig {
+
             @ExcelProperty(index = 0)
-            String fieldName;
+            private String fieldName;
+
             @ExcelProperty(index = 1)
-            String fieldNameDesc;
+            private String fieldNameDesc;
+
             @ExcelProperty(index = 2)
-            String dataType;
+            private String dataType;
+
             @ExcelProperty(index = 3)
-            String defaultValue = "";
+            private String defaultValue = "";
+
             @ExcelProperty(index = 4)
-            String enums = "";
+            private String enums = "";
+
             @ExcelProperty(index = 5)
-            String example = "";
+            private String example = "";
+
             @ExcelProperty(index = 6)
-            boolean autoIncrement;
+            private boolean autoIncrement;
         }
 
-        @Data
+        @Getter
+        @Setter
         public static class Header {
             @ExcelProperty(value = "ConfigName", index = 0)
             String configName;

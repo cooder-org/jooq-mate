@@ -36,22 +36,22 @@ public class JooqGenerator {
 
         configuration.withJdbc(new Jdbc()
                 .withDriver("com.mysql.cj.jdbc.Driver")
-                .withUrl(jc.url)
-                .withUser(jc.user)
-                .withPassword(jc.password))
+                .withUrl(jc.getUrl())
+                .withUser(jc.getUser())
+                .withPassword(jc.getPassword()))
                 .withGenerator(new Generator()
                         .withDatabase(new Database()
                                 .withName("org.jooq.meta.mysql.MySQLDatabase")
-                                .withInputSchema(jc.inputSchema)
+                                .withInputSchema(jc.getInputSchema())
                                 .withOutputSchemaToDefault(true)
                                 .withIncludes(includeTables))
                         .withGenerate(new Generate()
-                                .withDaos(jc.generateDaos)
-                                .withRecords(jc.generateRecords)
-                                .withPojos(jc.generatePojos))
+                                .withDaos(jc.isGenerateDaos())
+                                .withRecords(jc.isGenerateRecords())
+                                .withPojos(jc.isGeneratePojos()))
                         .withTarget(new Target()
-                                .withPackageName(jc.packageName)
-                                .withDirectory(jc.directory))
+                                .withPackageName(jc.getPackageName())
+                                .withDirectory(jc.getDirectory()))
                         .withStrategy(new Strategy()
                                 .withMatchers(new Matchers()
                                         .withTables(tableStrategies))));
@@ -61,7 +61,7 @@ public class JooqGenerator {
         log.info("generate database tables: ");
         sqls.forEach(log::info);
 
-        DSLContext db = DSL.using(jc.url, jc.user, jc.password);
+        DSLContext db = DSL.using(jc.getUrl(), jc.getUser(), jc.getPassword());
         db.batch(sqls.toArray(new String[0])).execute();
 
     }
