@@ -26,11 +26,24 @@ public class SqlGenerator {
 
     private List<String> generate(TableConfig tc) {
         List<String> sqls = new ArrayList<>();
+        int shardingCount = tc.getShardingCount();
 
-        sqls.add(String.format("DROP TABLE IF EXISTS `%s`;\n", tc.getTableName()));
+        sqls.addAll(generate(tc, 0));
+        for (int i = 0; i < shardingCount; i++) {
+            sqls.addAll(generate(tc, i + 1));
+        }
+
+        return sqls;
+    }
+
+    private List<String> generate(TableConfig tc, int shardingIndex) {
+        List<String> sqls = new ArrayList<>();
+        String tableName = shardingIndex == 0 ? tc.getTableName() : String.format("%s_%2d", tc.getTableName(), shardingIndex);
+
+        sqls.add(String.format("DROP TABLE IF EXISTS `%s`;\n", tableName));
 
         StringBuilder sb = new StringBuilder();
-        sb.append(String.format("CREATE TABLE `%s` (\n", tc.getTableName()));
+        sb.append(String.format("CREATE TABLE `%s` (\n", tableName));
 
         tc.getFields().forEach(fc -> sb.append(String.format(
                 "  `%s` %s NOT NULL %s %s COMMENT '%s',\n",
