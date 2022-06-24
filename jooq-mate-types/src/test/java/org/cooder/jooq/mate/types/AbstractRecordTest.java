@@ -13,11 +13,11 @@ public class AbstractRecordTest {
     @Data
     @SuperBuilder
     @NoArgsConstructor
-    static class RecordEntity {
+    public static class RecordEntity {
         String houseLayoutCode;
     }
 
-    static class RecordImpl extends AbstractRecord<RecordEntity> {
+    public static class RecordImpl extends AbstractRecord<RecordEntity> {
         public static final AbstractRecord.Field[] FIELDS = new Field[] {
                 AbstractRecord.Field.builder().name("houseLayoutCode").type(String.class).desc("户型code").build(),
         };

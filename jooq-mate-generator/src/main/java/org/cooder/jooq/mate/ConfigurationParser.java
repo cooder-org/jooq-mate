@@ -62,7 +62,9 @@ public class ConfigurationParser {
                 return;
             }
             Object value = cast(v.getConfigName(), v.getConfigValue(), config.getClass());
-            TypeUtils.setValue(config, v.getConfigName(), value);
+            if(value != null) {
+                TypeUtils.setValue(config, v.getConfigName(), value);
+            }
         });
     }
 
@@ -83,11 +85,11 @@ public class ConfigurationParser {
     }
 
     static Object cast(String name, Object value, Class<?> to) {
-        if(value == null) {
+        PropertyDescriptor pd = BeanUtils.getPropertyDescriptor(to, name);
+        if(value == null || pd == null) {
             return null;
         }
 
-        PropertyDescriptor pd = BeanUtils.getPropertyDescriptor(to, name);
         Class<?> pt = pd.getPropertyType();
         if(pt == boolean.class || pt == Boolean.class) {
             value = Boolean.valueOf((String) value);
@@ -204,11 +206,13 @@ public class ConfigurationParser {
         String url;
         String user;
         String password;
+        String inputSchema;
         String directory;
         String packageName;
         boolean generateRecords;
         boolean generatePojos;
         boolean generateDaos;
+
 
         @Data
         public static class Header {
