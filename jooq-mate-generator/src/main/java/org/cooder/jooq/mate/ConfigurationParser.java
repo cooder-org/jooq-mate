@@ -24,7 +24,9 @@ import com.alibaba.excel.read.metadata.holder.ReadRowHolder;
 import lombok.Data;
 import lombok.Getter;
 import lombok.experimental.Accessors;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class ConfigurationParser {
 
     public Config parse(String file) {
@@ -44,6 +46,7 @@ public class ConfigurationParser {
         for (ReadSheet sheet : sheets) {
             listener.reset();
             if(sheet.getSheetName().toLowerCase().startsWith("table")) {
+                log.info("process table config: ", sheet.getSheetName());
                 reader.read(sheet);
                 config.addTable(listener.getTableConfig());
             }
@@ -104,21 +107,24 @@ public class ConfigurationParser {
         return value;
     }
 
+    @Slf4j
     private static class SingleTableListenerImpl<T> extends AnalysisEventListener<T> {
         @Getter
         private List<T> datas = new ArrayList<>();
 
         @Override
         public void invoke(T data, AnalysisContext context) {
-            System.out.println(data);
+            log.info("row readed: {}", data);
             datas.add(data);
         }
 
         @Override
         public void doAfterAllAnalysed(AnalysisContext context) {
+            // no-op
         }
     }
 
+    @Slf4j
     private static class TableConfigListenerImpl extends AnalysisEventListener<TableConfig.Header> {
         @Getter
         private TableConfig tableConfig;
@@ -135,6 +141,7 @@ public class ConfigurationParser {
                 Map<Integer, ReadCellData<?>> cellDataMap = (Map) readRowHolder.getCellMap();
                 FieldConfig fc = buildFieldConfig(cellDataMap);
                 tableConfig.addField(fc);
+                log.info("field config readed: {}", fc);
             } else {
                 Object value = cast(data.getConfigName(), data.getConfigValue1(), tableConfig.getClass());
                 if(value instanceof UniqKey) {
@@ -143,18 +150,17 @@ public class ConfigurationParser {
                 }
 
                 TypeUtils.setValue(tableConfig, data.getConfigName(), value);
+                log.info("table config readed: {}", tableConfig);
             }
         }
 
         public void reset() {
-            if(tableConfig != null) {
-                System.out.println(tableConfig);
-            }
             tableConfig = new TableConfig();
         }
 
         @Override
         public void doAfterAllAnalysed(AnalysisContext context) {
+            // no-op
         }
 
         private FieldConfig buildFieldConfig(Map<Integer, ReadCellData<?>> dataMap) {
@@ -213,7 +219,6 @@ public class ConfigurationParser {
         boolean generateRecords;
         boolean generatePojos;
         boolean generateDaos;
-
 
         @Data
         public static class Header {

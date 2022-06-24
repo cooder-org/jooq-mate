@@ -21,6 +21,9 @@ import org.jooq.meta.jaxb.MatchersTableType;
 import org.jooq.meta.jaxb.Strategy;
 import org.jooq.meta.jaxb.Target;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 public class JooqGenerator {
 
     private final Configuration configuration = new Configuration();
@@ -55,8 +58,8 @@ public class JooqGenerator {
     }
 
     public void executeDDL(JooqConfig jc, List<String> sqls) {
-        System.out.println("generate database tables: ");
-        sqls.forEach(System.out::println);
+        log.info("generate database tables: ");
+        sqls.forEach(log::info);
 
         DSLContext db = DSL.using(jc.url, jc.user, jc.password);
         db.batch(sqls.toArray(new String[0])).execute();

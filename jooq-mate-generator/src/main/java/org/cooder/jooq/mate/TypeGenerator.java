@@ -31,6 +31,9 @@ import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 public class TypeGenerator {
     private static final int INTERFACE = 1;
     private static final int RECORD = 2;
@@ -235,7 +238,7 @@ public class TypeGenerator {
                 .build();
         javaFile.writeTo(new File(strategy.getDirectory()));
 
-        System.out.println(String.format("generated: %s.%s", packageName, typeSpec.name));
+        log.info(String.format("generated: %s.%s", packageName, typeSpec.name));
     }
 
     private boolean ignoreTable(TableMeta table) {
