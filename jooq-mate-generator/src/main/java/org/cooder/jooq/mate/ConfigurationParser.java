@@ -125,10 +125,9 @@ public class ConfigurationParser {
 
         private boolean espectFiled;
 
-        @SuppressWarnings("unchecked")
+        @SuppressWarnings({ "unchecked", "rawtypes" })
         @Override
         public void invoke(TableConfig.Header data, AnalysisContext context) {
-            System.out.println(data);
             if(data.getConfigName().equals("fieldName")) {
                 espectFiled = true;
             } else if(espectFiled) {
@@ -136,7 +135,6 @@ public class ConfigurationParser {
                 Map<Integer, ReadCellData<?>> cellDataMap = (Map) readRowHolder.getCellMap();
                 FieldConfig fc = buildFieldConfig(cellDataMap);
                 tableConfig.addField(fc);
-                System.out.println(fc);
             } else {
                 Object value = cast(data.getConfigName(), data.getConfigValue1(), tableConfig.getClass());
                 if(value instanceof UniqKey) {
@@ -149,6 +147,9 @@ public class ConfigurationParser {
         }
 
         public void reset() {
+            if(tableConfig != null) {
+                System.out.println(tableConfig);
+            }
             tableConfig = new TableConfig();
         }
 
@@ -247,7 +248,7 @@ public class ConfigurationParser {
         }
     }
 
-    @Data
+    @lombok.Data
     public static class TableConfig {
         String tableName;
         String tableNameDesc;
