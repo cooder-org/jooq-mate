@@ -28,7 +28,7 @@ add `jooq-mate-generator` for programmatic generating code.
 
 1、usage
 
-- config your data models and joomate settings. [config file template](./jooq-mate-generator/src/test/resources/jooq-mate-config.xlsx)
+- config your data models and jooq-mate settings. [config file template](./jooq-mate-generator/src/test/resources/jooq-mate-config.xlsx)
 
 - generate db tables and code. 
 ```sh
