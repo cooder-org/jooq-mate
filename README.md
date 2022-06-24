@@ -43,7 +43,7 @@ java -jar jooq-mate-generator.jar -ct -jt <file>
 
 ## Example
 1. Suppose there is a `house_layout` data model as shown below: 
-[house_layout_model](./doc/hosue_layout.png)
+[house_layout_model](./doc/house_layout.png)
 
 2. then running jooq-mate-generator.jar
 
