@@ -7,48 +7,41 @@
 ## quick start
 
 0、config (maven)  
+add `jooq-mate-types` for using generated code.
+
 ```xml
 <dependency>
   <groupId>org.cooder</groupId>
-  <artifactId>jooq-mate</artifactId>
+  <artifactId>jooq-mate-types</artifactId>
   <version>${version}</version>
 </dependency>
 ```
 
-1、usage (please refer to test cases for more)
-```java
-//
-// Tables.class is jooq:codegen generated class
-//
-TableStrategy houseStategy = new TableStrategy().setSubPackageName(".house");
-
-GeneratorStrategy strategy = new GeneratorStrategy()
-        .withDirectory("./src/codegen/java/")
-        .withPackageName("org.cooder.jooqmate.type")
-        .generatePojoWithLombok(false)
-        .generateInterface(false)
-        .generatePojo(false)
-        .generateRecord(true)
-        .withInterfaceNameConverter((s, tableName) -> {
-            String name = StringUtils.toCamelCase(tableName);
-            if(name.equals("DesignPlan")) {
-                return "Plan";
-            }
-
-            return name;
-        })
-        .withPojoNameConverter((s, tableName) -> {
-            String name = StringUtils.toCamelCase(tableName);
-            if(name.equals("DesignPlan")) {
-                return "Plan";
-            }
-            return name;
-        })
-        .ignoreFieldNames("id", "cuid", "cu_name", "muid", "mu_name", "ctime", "mtime")
-        .includeTableNames(Tables.SPACE.getName())
-        .withTableStrategy(Tables.SPACE.getName(), houseStategy);
-
-TypeGenerator generator = new TypeGenerator(strategy);
-
-generator.generateTables(Tables.class.getName());
+add `jooq-mate-generator` for programmatic generating code.
+```xml
+<dependency>
+  <groupId>org.cooder</groupId>
+  <artifactId>jooq-mate-generator</artifactId>
+  <version>${version}</version>
+</dependency>
 ```
+
+1、usage
+
+- config your data models and joomate settings. [config file template](./jooq-mate-generator/src/test/resources/jooq-mate-config.xlsx)
+
+- generate db tables and code. 
+```sh
+
+java -jar jooq-mate-generator.jar -ct -jt <file>
+
+//      <file>              Config file path
+//      -ct, --createTable  Create tables in the specified database
+//      -jc, --jooqCodegen  Generate jooq's Dao, Record, Pojo...
+
+```
+
+
+
+
+
