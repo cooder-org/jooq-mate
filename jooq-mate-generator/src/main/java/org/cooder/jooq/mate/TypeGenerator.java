@@ -2,11 +2,20 @@ package org.cooder.jooq.mate;
 
 import java.io.File;
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.time.LocalTime;
 import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import javax.lang.model.element.Modifier;
 
+import org.cooder.jooq.mate.ConfigurationParser.Config;
+import org.cooder.jooq.mate.ConfigurationParser.JooqMateConfig;
+import org.cooder.jooq.mate.ConfigurationParser.TableConfig;
+import org.cooder.jooq.mate.ConfigurationParser.TableConfig.FieldConfig;
+import org.cooder.jooq.mate.TypeGeneratorStrategy.TableStrategy;
+import org.cooder.jooq.mate.types.AbstractRecord;
 import org.jooq.Field;
 import org.jooq.impl.TableImpl;
 import org.jooq.tools.StringUtils;
@@ -27,14 +36,22 @@ public class TypeGenerator {
     private static final int RECORD = 2;
     private static final int POJO = 3;
 
-    private GeneratorStrategy strategy;
+    private TypeGeneratorStrategy strategy;
 
     public TypeGenerator() {
-        this(new GeneratorStrategy());
+        this(new TypeGeneratorStrategy());
     }
 
-    public TypeGenerator(GeneratorStrategy strategy) {
+    public TypeGenerator(TypeGeneratorStrategy strategy) {
         this.strategy = strategy;
+    }
+
+    public void generate(final Config conf) throws Exception {
+        withConfig(conf);
+        List<TableConfig> tbs = conf.tables();
+        for (TableConfig tc : tbs) {
+            generateTable(new TableConfigMeta(tc));
+        }
     }
 
     public void generateTables(String tablesClassName) throws Exception {
@@ -43,23 +60,23 @@ public class TypeGenerator {
             if((f.getModifiers() & java.lang.reflect.Modifier.PUBLIC) > 0) {
                 Object table = f.get(null);
                 if(table instanceof TableImpl) {
-                    generateTable((TableImpl<?>) table);
+                    generateTable(new JooqTableMeta((TableImpl<?>) table));
                 }
             }
         }
     }
 
-    public void generateTable(TableImpl<?> table) throws IOException {
+    public void generateTable(TableMeta table) throws IOException {
         if(ignoreTable(table)) {
             return;
         }
 
         String tableName = table.getName();
-        Field<?>[] fields = Arrays.asList(table.fields())
+        FieldMeta[] fields = Arrays.asList(table.fields())
                 .stream()
                 .filter(f -> !ignore(tableName, f))
                 .collect(Collectors.toList())
-                .toArray(new Field[0]);
+                .toArray(new FieldMeta[0]);
 
         if(strategy.isGenerateInterface(tableName)) {
             String comment = table.getComment();
@@ -75,7 +92,7 @@ public class TypeGenerator {
         }
     }
 
-    public void generateInterface(String tableName, String comment, Field<?>[] fields) throws IOException {
+    public void generateInterface(String tableName, String comment, FieldMeta[] fields) throws IOException {
         String clazzName = strategy.interfaceClazzName(tableName);
         TypeSpec.Builder ts = TypeSpec.interfaceBuilder(clazzName)
                 .addModifiers(Modifier.PUBLIC)
@@ -88,7 +105,7 @@ public class TypeGenerator {
         output(strategy.interfacePackageName(tableName), ts.build());
     }
 
-    public void generateRecord(String tableName, Field<?>[] fields) throws IOException {
+    public void generateRecord(String tableName, FieldMeta[] fields) throws IOException {
         String clazz = strategy.recordClazzName(tableName);
         ClassName genericType = strategy.pojoClassName(tableName);
         TypeSpec.Builder ts = TypeSpec.classBuilder(clazz)
@@ -103,7 +120,7 @@ public class TypeGenerator {
         output(strategy.recordPackageName(tableName), ts.build());
     }
 
-    public void generatePojo(String tableName, Field<?>[] fields) throws IOException {
+    public void generatePojo(String tableName, FieldMeta[] fields) throws IOException {
         ClassName pojoCN = strategy.pojoClassName(tableName);
         TypeSpec.Builder ts = TypeSpec.classBuilder(pojoCN.simpleName())
                 .addModifiers(Modifier.PUBLIC)
@@ -132,9 +149,9 @@ public class TypeGenerator {
         output(strategy.pojoPackageName(tableName), ts.build());
     }
 
-    protected void generatePojoFields(TypeSpec.Builder ts, Field<?>[] fields) {
+    protected void generatePojoFields(TypeSpec.Builder ts, FieldMeta[] fields) {
         for (int i = 0; i < fields.length; i++) {
-            Field<?> f = fields[i];
+            FieldMeta f = fields[i];
             String fieldName = StringUtils.toCamelCaseLC(f.getName());
             FieldSpec spec = FieldSpec.builder(f.getType(), fieldName, Modifier.PRIVATE)
                     .addJavadoc(f.getComment())
@@ -143,14 +160,14 @@ public class TypeGenerator {
         }
     }
 
-    protected void generateGetterSetter(TypeSpec.Builder ts, Field<?>[] fields, int type) {
+    protected void generateGetterSetter(TypeSpec.Builder ts, FieldMeta[] fields, int type) {
         for (int i = 0; i < fields.length; i++) {
             ts.addMethod(generateGetter(i, fields[i], type));
             ts.addMethod(generateSetter(i, fields[i], type));
         }
     }
 
-    private FieldSpec generateRecordFields(Field<?>[] fields) {
+    private FieldSpec generateRecordFields(FieldMeta[] fields) {
         Builder b = FieldSpec.builder(AbstractRecord.Field[].class, "FIELDS", Modifier.PRIVATE, Modifier.STATIC, Modifier.FINAL);
         com.squareup.javapoet.CodeBlock.Builder cb = CodeBlock.builder();
         cb.add("new Field[] {\n");
@@ -172,13 +189,13 @@ public class TypeGenerator {
         return b.build();
     }
 
-    protected MethodSpec generateGetter(int index, Field<?> field, int type) {
+    protected MethodSpec generateGetter(int index, FieldMeta field, int type) {
         String nameLC = StringUtils.toCamelCaseLC(field.getName());
         MethodSpec.Builder b = MethodSpec.methodBuilder("get" + StringUtils.toCamelCase(field.getName()))
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(Override.class)
                 .returns(field.getType())
-                .addJavadoc("获取`" + field.getComment() + "`");
+                .addJavadoc("获取`" + field.getNameDesc() + "`");
 
         if(INTERFACE == type) {
             b.addModifiers(Modifier.ABSTRACT);
@@ -190,14 +207,14 @@ public class TypeGenerator {
         return b.build();
     }
 
-    protected MethodSpec generateSetter(int index, Field<?> field, int type) {
+    protected MethodSpec generateSetter(int index, FieldMeta field, int type) {
         String nameLC = StringUtils.toCamelCaseLC(field.getName());
         MethodSpec.Builder b = MethodSpec.methodBuilder("set" + StringUtils.toCamelCase(field.getName()))
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(Override.class)
                 .addParameter(field.getType(), nameLC)
                 .returns(void.class)
-                .addJavadoc("设置`" + field.getComment() + "`");
+                .addJavadoc("设置`" + field.getNameDesc() + "`");
 
         if(INTERFACE == type) {
             b.addModifiers(Modifier.ABSTRACT);
@@ -221,11 +238,193 @@ public class TypeGenerator {
         System.out.println(String.format("generated: %s.%s", packageName, typeSpec.name));
     }
 
-    private boolean ignoreTable(TableImpl<?> table) {
+    private boolean ignoreTable(TableMeta table) {
         return this.strategy.isIgnoreTable(table.getName());
     }
 
-    private boolean ignore(String tableName, Field<?> f) {
+    private boolean ignore(String tableName, FieldMeta f) {
         return this.strategy.isIgnoreField(tableName, f.getName());
     }
+
+    private void withConfig(final Config conf) {
+        JooqMateConfig mc = conf.mateConfig;
+        this.strategy.withDirectory(mc.directory)
+                .withPackageName(mc.packageName)
+                .ignoreFieldNames(mc.ignoreFieldNames)
+                .includeTableNames(mc.includeTableNames)
+                .excludeTableNames(mc.excludeTableNames)
+                .generateInterface(mc.generateInterface)
+                .generateRecord(mc.generateRecord)
+                .generatePojo(mc.generatePojo)
+                .generatePojoWithLombok(mc.generatePojoWithLombok)
+                .withInterfaceNameConverter((s, tableName) -> conf.getTableConfig(tableName).jooqmateInterfaceName)
+                .withRecordNameConverter((s, tableName) -> conf.getTableConfig(tableName).jooqmateRecordName)
+                .withPojoNameConverter((s, tableName) -> conf.getTableConfig(tableName).jooqmatePojoName);
+
+        for (TableConfig tc : conf.tables) {
+            this.strategy.withTableStrategy(tc.tableName, new TableStrategy()
+                    .setSubPackageName(tc.jooqmateSubpackage)
+                    .ignoreFieldNames(tc.jooqmateIgnoreFieldNames)
+                    .setGeneratedInterfaceSuperInterfaces(tc.jooqmateInterfaceSupers)
+                    .setGeneratedPojoSuperClass(tc.jooqmatePojoSuperClass));
+        }
+    }
+
+    private interface TableMeta {
+        String getName();
+
+        String getComment();
+
+        FieldMeta[] fields();
+    }
+
+    private interface FieldMeta {
+        String getName();
+
+        Class<?> getType();
+
+        String getComment();
+
+        default String getNameDesc() {
+            return getComment();
+        }
+
+    }
+
+    private static class JooqTableMeta implements TableMeta {
+        private final TableImpl<?> table;
+
+        public JooqTableMeta(TableImpl<?> table) {
+            this.table = table;
+        }
+
+        @Override
+        public String getName() {
+            return table.getName();
+        }
+
+        @Override
+        public String getComment() {
+            return table.getComment();
+        }
+
+        @Override
+        public FieldMeta[] fields() {
+            Field<?>[] fs = table.fields();
+            FieldMeta[] metas = new FieldMeta[fs.length];
+            for (int i = 0; i < fs.length; i++) {
+                metas[i] = new JooqFieldMeta(fs[i]);
+            }
+            return metas;
+        }
+    }
+
+    private static class JooqFieldMeta implements FieldMeta {
+        private final Field<?> field;
+
+        public JooqFieldMeta(Field<?> field) {
+            this.field = field;
+        }
+
+        @Override
+        public String getName() {
+            return field.getName();
+        }
+
+        @Override
+        public Class<?> getType() {
+            return field.getType();
+        }
+
+        @Override
+        public String getComment() {
+            return field.getComment();
+        }
+    }
+
+    private static class TableConfigMeta implements TableMeta {
+        private TableConfig tableConfig;
+
+        public TableConfigMeta(TableConfig tc) {
+            this.tableConfig = tc;
+        }
+
+        @Override
+        public String getName() {
+            return tableConfig.tableName;
+        }
+
+        @Override
+        public String getComment() {
+            return String.format("%s<br>\n\n%s", tableConfig.tableNameDesc, tableConfig.tableDesc);
+        }
+
+        @Override
+        public FieldMeta[] fields() {
+            List<FieldConfig> fs = tableConfig.fields;
+            FieldMeta[] ret = new FieldMeta[fs.size()];
+            for (int i = 0; i < ret.length; i++) {
+                ret[i] = new FieldConfigMeta(fs.get(i));
+            }
+
+            return ret;
+        }
+    }
+
+    private static class FieldConfigMeta implements FieldMeta {
+        private FieldConfig fieldConfig;
+
+        public FieldConfigMeta(FieldConfig fieldConfig) {
+            this.fieldConfig = fieldConfig;
+        }
+
+        @Override
+        public String getName() {
+            return fieldConfig.fieldName;
+        }
+
+        @Override
+        public Class<?> getType() {
+            Class<?> clazz = null;
+            String dataType = fieldConfig.dataType.toUpperCase();
+            if(dataType.contains("BIGINT")) {
+                clazz = Long.class;
+            } else if(dataType.contains("INT")) {
+                clazz = Integer.class;
+            } else if(dataType.contains("CHAR")) {
+                clazz = String.class;
+            } else if(dataType.contains("DECIMAL")) {
+                clazz = BigDecimal.class;
+            } else if(dataType.contains("TIMESTAMP")) {
+                clazz = LocalTime.class;
+            }
+            return clazz;
+        }
+
+        @Override
+        public String getComment() {
+            boolean hasMore = false;
+            StringBuilder sb = new StringBuilder();
+            sb.append(fieldConfig.fieldNameDesc).append("\n");
+            if(!StringUtils.isEmpty(fieldConfig.enums)) {
+                sb.append('\n');
+                sb.append("取值说明: ").append(fieldConfig.enums).append("\n");
+                hasMore = true;
+            }
+            if(!StringUtils.isEmpty(fieldConfig.example)) {
+                if(!hasMore) {
+                    sb.append('\n');
+                }
+                sb.append("例如:  ").append(fieldConfig.example).append("\n");
+            }
+
+            return sb.toString();
+        }
+
+        @Override
+        public String getNameDesc() {
+            return fieldConfig.getFieldNameDesc();
+        }
+    }
+
 }

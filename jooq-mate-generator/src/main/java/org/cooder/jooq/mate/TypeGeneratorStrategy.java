@@ -20,7 +20,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 
-public class GeneratorStrategy {
+public class TypeGeneratorStrategy {
     @Getter
     private String indent = "    ";
 
@@ -54,52 +54,55 @@ public class GeneratorStrategy {
     private NameConverter recordNameConverter;
     private NameConverter pojoNameConverter;
 
-    public GeneratorStrategy withIndent(String indent) {
+    public TypeGeneratorStrategy withIndent(String indent) {
         this.indent = indent;
         return this;
     }
 
-    public GeneratorStrategy withDirectory(String directory) {
+    public TypeGeneratorStrategy withDirectory(String directory) {
         this.directory = directory;
         return this;
     }
 
-    public GeneratorStrategy withPackageName(String packageName) {
+    public TypeGeneratorStrategy withPackageName(String packageName) {
         this.packageName = packageName;
         return this;
     }
 
-    public GeneratorStrategy withInterfaceNameConverter(NameConverter tableNameConverter) {
+    public TypeGeneratorStrategy withInterfaceNameConverter(NameConverter tableNameConverter) {
         this.interfaceNameConverter = tableNameConverter;
         return this;
     }
 
-    public GeneratorStrategy withRecordNameConverter(NameConverter recordNameConverter) {
+    public TypeGeneratorStrategy withRecordNameConverter(NameConverter recordNameConverter) {
         this.recordNameConverter = recordNameConverter;
         return this;
     }
 
-    public GeneratorStrategy withPojoNameConverter(NameConverter pojoNameConverter) {
+    public TypeGeneratorStrategy withPojoNameConverter(NameConverter pojoNameConverter) {
         this.pojoNameConverter = pojoNameConverter;
         return this;
     }
 
-    public GeneratorStrategy withTableStrategy(String tableName, TableStrategy ts) {
+    public TypeGeneratorStrategy withTableStrategy(String tableName, TableStrategy ts) {
         this.tableStrategies.put(tableName, ts);
         return this;
     }
 
-    public GeneratorStrategy ignoreFieldNames(String... fields) {
+    public TypeGeneratorStrategy ignoreFieldNames(String... fields) {
         ignoreFieldNames.addAll(Arrays.asList(fields));
         return this;
     }
 
-    public GeneratorStrategy includeTableNames(String... tables) {
-        includeTableNames.addAll(Arrays.asList(tables));
+    public TypeGeneratorStrategy includeTableNames(String... tables) {
+        if(tables != null) {
+            includeTableNames.addAll(Arrays.asList(tables));
+        }
+
         return this;
     }
 
-    public GeneratorStrategy excludeTableNames(String... tables) {
+    public TypeGeneratorStrategy excludeTableNames(String... tables) {
         excludeTableNames.addAll(Arrays.asList(tables));
         return this;
     }
@@ -167,24 +170,27 @@ public class GeneratorStrategy {
     }
 
     public String convertInterfaceName(String tableName) {
+        String name = null;
         if(interfaceNameConverter != null) {
-            return interfaceNameConverter.apply(this, tableName);
+            name = interfaceNameConverter.apply(this, tableName);
         }
-        return StringUtils.toCamelCase(tableName);
+        return StringUtils.isEmpty(name) ? StringUtils.toCamelCase(tableName) : name;
     }
 
     public String convertRecordName(String tableName) {
+        String name = null;
         if(recordNameConverter != null) {
-            return recordNameConverter.apply(this, tableName);
+            name = recordNameConverter.apply(this, tableName);
         }
-        return convertInterfaceName(tableName) + "Record";
+        return StringUtils.isEmpty(name) ? convertInterfaceName(tableName) + "Record" : name;
     }
 
     public String convertPojoName(String tableName) {
+        String name = null;
         if(pojoNameConverter != null) {
-            return pojoNameConverter.apply(this, tableName);
+            name = pojoNameConverter.apply(this, tableName);
         }
-        return convertInterfaceName(tableName) + "Entity";
+        return StringUtils.isEmpty(name) ? convertInterfaceName(tableName) + "Entity" : name;
     }
 
     public String subpackage(String tableName) {
@@ -248,7 +254,7 @@ public class GeneratorStrategy {
     }
 
     @FunctionalInterface
-    public static interface NameConverter extends BiFunction<GeneratorStrategy, String, String> {
+    public static interface NameConverter extends BiFunction<TypeGeneratorStrategy, String, String> {
 
     }
 

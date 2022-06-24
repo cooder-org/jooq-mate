@@ -1,13 +1,11 @@
-package org.cooder.jooq.mate;
+package org.cooder.jooq.mate.types;
 
-import java.beans.PropertyDescriptor;
-import java.lang.reflect.InvocationTargetException;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-import org.springframework.beans.BeanUtils;
+import org.cooder.jooq.mate.utils.TypeUtils;
 
 import lombok.Getter;
 import lombok.experimental.SuperBuilder;
@@ -75,14 +73,14 @@ public abstract class AbstractRecord<T> {
         T pojo = newPojo();
         for (Field f : fileds()) {
             String name = f.getName();
-            setValue(pojo, name, get(name));
+            TypeUtils.setValue(pojo, name, get(name));
         }
         return pojo;
     }
 
     public AbstractRecord<T> fromPojo(T pojo) {
         for (int i = 0; i < fields.length; i++) {
-            Object value = getValue(pojo, fields[i].name);
+            Object value = TypeUtils.getValue(pojo, fields[i].name);
             iset(i, value);
         }
         return this;
@@ -125,30 +123,5 @@ public abstract class AbstractRecord<T> {
         private final String name;
         private final String desc;
         private final Class<?> type;
-    }
-
-    private static Object getValue(Object pojo, String fieldName) {
-        PropertyDescriptor pd = BeanUtils.getPropertyDescriptor(pojo.getClass(), fieldName);
-        if(pd == null) {
-            return null;
-        }
-
-        try {
-            return pd.getReadMethod().invoke(pojo);
-        } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-            throw new IllegalStateException(e);
-        }
-    }
-
-    private static void setValue(Object pojo, String fieldName, Object value) {
-        PropertyDescriptor pd = BeanUtils.getPropertyDescriptor(pojo.getClass(), fieldName);
-
-        try {
-            if(pd != null) {
-                pd.getWriteMethod().invoke(pojo, value);
-            }
-        } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-            throw new IllegalStateException(e);
-        }
     }
 }

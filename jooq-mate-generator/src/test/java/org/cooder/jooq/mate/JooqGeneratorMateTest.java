@@ -2,7 +2,7 @@ package org.cooder.jooq.mate;
 
 import java.io.File;
 
-import org.cooder.jooq.mate.GeneratorStrategy.TableStrategy;
+import org.cooder.jooq.mate.TypeGeneratorStrategy.TableStrategy;
 import org.cooder.jooq.mate.db.Tables;
 import org.jooq.tools.StringUtils;
 import org.junit.Assert;
@@ -23,7 +23,7 @@ public class JooqGeneratorMateTest {
                             new String[] { "java.util.List<>", "java.lang.Serializable", "java.util.function.Function<String,String>" })
                     .setGeneratedPojoSuperClass("org.cooder.type.pojos.EntityBase");
 
-            GeneratorStrategy strategy = new GeneratorStrategy()
+            TypeGeneratorStrategy strategy = new TypeGeneratorStrategy()
                     .withDirectory(directory)
                     .withPackageName(packageName)
                     .generatePojoWithLombok(true)

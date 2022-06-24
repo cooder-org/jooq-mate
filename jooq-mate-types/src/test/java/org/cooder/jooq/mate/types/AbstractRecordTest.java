@@ -1,6 +1,6 @@
-package org.cooder.jooq.mate;
+package org.cooder.jooq.mate.types;
 
-import org.cooder.jooq.mate.AbstractRecord.Field;
+import org.cooder.jooq.mate.types.AbstractRecord.Field;
 import org.junit.Assert;
 import org.junit.Test;
 
