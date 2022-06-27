@@ -193,21 +193,37 @@ public class TypeGeneratorStrategy {
         return StringUtils.isEmpty(name) ? convertInterfaceName(tableName) + "Entity" : name;
     }
 
+    public String getTypePackageName() {
+        return getPackageName() + ".type";
+    }
+
+    public String getRepoPakcgaeName() {
+        return getPackageName() + ".repo";
+    }
+
+    public String getServicePackageName() {
+        return getPackageName() + ".service";
+    }
+
+    public String getApiPackageName() {
+        return getPackageName() + ".api";
+    }
+
     public String subpackage(String tableName) {
         TableStrategy ts = getTableStrategy(tableName);
         return ts == null ? "" : ts.getSubPackageName();
     }
 
     public String interfacePackageName(String tableName) {
-        return getPackageName() + subpackage(tableName);
+        return getTypePackageName() + subpackage(tableName);
     }
 
     public String pojoPackageName(String tableName) {
-        return getPackageName() + ".pojos" + subpackage(tableName);
+        return getTypePackageName() + ".pojos" + subpackage(tableName);
     }
 
     public String recordPackageName(String tableName) {
-        return getPackageName() + ".records" + subpackage(tableName);
+        return getTypePackageName() + ".records" + subpackage(tableName);
     }
 
     public String interfaceClazzName(String tableName) {
