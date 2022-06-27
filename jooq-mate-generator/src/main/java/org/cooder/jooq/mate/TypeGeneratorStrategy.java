@@ -28,6 +28,15 @@ public class TypeGeneratorStrategy {
     private String directory;
 
     @Getter
+    private String repoDirectory;
+
+    @Getter
+    private String serviceDirectory;
+
+    @Getter
+    private String apiDirectory;
+
+    @Getter
     private String packageName = "org.cooder.jooq.generate";
     private Set<String> ignoreFieldNames = new HashSet<>();
     private Set<String> includeTableNames = new HashSet<>();

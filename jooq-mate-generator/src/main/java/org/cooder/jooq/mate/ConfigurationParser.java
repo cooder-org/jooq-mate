@@ -20,6 +20,7 @@ import com.alibaba.excel.event.AnalysisEventListener;
 import com.alibaba.excel.metadata.data.ReadCellData;
 import com.alibaba.excel.read.metadata.ReadSheet;
 import com.alibaba.excel.read.metadata.holder.ReadRowHolder;
+import com.alibaba.excel.util.StringUtils;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -322,6 +323,19 @@ public class ConfigurationParser {
 
             @ExcelProperty(index = 6)
             private boolean autoIncrement;
+
+            public String getComment() {
+                StringBuilder sb = new StringBuilder();
+                sb.append(fieldNameDesc);
+                if(!StringUtils.isEmpty(enums)) {
+                    sb.append(" \\n@Enums ").append(enums);
+                }
+
+                if(!StringUtils.isEmpty(example)) {
+                    sb.append(" \\n@Example ").append(example);
+                }
+                return sb.toString();
+            }
         }
 
         @Getter

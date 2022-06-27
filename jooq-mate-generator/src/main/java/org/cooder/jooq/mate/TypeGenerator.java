@@ -394,7 +394,7 @@ public class TypeGenerator {
                 clazz = Long.class;
             } else if(dataType.contains("INT")) {
                 clazz = Integer.class;
-            } else if(dataType.contains("CHAR")) {
+            } else if(dataType.contains("CHAR") || dataType.contains("TEXT")) {
                 clazz = String.class;
             } else if(dataType.contains("DECIMAL")) {
                 clazz = BigDecimal.class;
