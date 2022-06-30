@@ -99,7 +99,9 @@ public class TypeGeneratorStrategy {
     }
 
     public TypeGeneratorStrategy ignoreFieldNames(String... fields) {
-        ignoreFieldNames.addAll(Arrays.asList(fields));
+        for (String f : fields) {
+            ignoreFieldNames.add(f.trim());
+        }
         return this;
     }
 

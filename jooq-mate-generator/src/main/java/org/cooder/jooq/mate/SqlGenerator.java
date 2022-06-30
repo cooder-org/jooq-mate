@@ -38,7 +38,7 @@ public class SqlGenerator {
 
     private List<String> generate(TableConfig tc, int shardingIndex) {
         List<String> sqls = new ArrayList<>();
-        String tableName = shardingIndex == 0 ? tc.getTableName() : String.format("%s_%2d", tc.getTableName(), shardingIndex);
+        String tableName = shardingIndex == 0 ? tc.getTableName() : String.format("%s_%02d", tc.getTableName(), shardingIndex);
 
         sqls.add(String.format("DROP TABLE IF EXISTS `%s`;\n", tableName));
 

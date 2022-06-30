@@ -105,7 +105,51 @@ public class TypeGenerator {
 
         generateGetterSetter(ts, fields, INTERFACE);
 
+        for (FieldMeta fm : fields) {
+            generateEnums(tableName, ts, fm);
+        }
+
         output(strategy.interfacePackageName(tableName), ts.build());
+    }
+
+    private void generateEnums(String tableName, TypeSpec.Builder parent, FieldMeta fm) {
+        String enumString = fm.getEnums();
+        if(StringUtils.isEmpty(enumString)) {
+            return;
+        }
+
+        String name = StringUtils.toCamelCase(fm.getName());
+        TypeSpec.Builder ts = TypeSpec.enumBuilder(name)
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC);
+
+        String[] pairs = MateUtils.split(enumString, ",");
+        for (String pair : pairs) {
+            String[] ss = MateUtils.split(pair, ":");
+            ts.addEnumConstant(ss[1], TypeSpec.anonymousClassBuilder("$L, $S", ss[0], ss[1]).build());
+        }
+
+        ts.addField(FieldSpec.builder(int.class, "value", Modifier.PUBLIC, Modifier.FINAL).build());
+        ts.addField(FieldSpec.builder(String.class, "name", Modifier.PUBLIC, Modifier.FINAL).build());
+        ts.addMethod(MethodSpec.constructorBuilder()
+                .addModifiers(Modifier.PRIVATE)
+                .addParameter(int.class, "value")
+                .addParameter(String.class, "name")
+                .addCode("this.value = value;\n"
+                        + "this.name = name;\n")
+                .build());
+
+        ts.addMethod(MethodSpec.methodBuilder("from")
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+                .returns(ClassName.get(strategy.interfacePackageName(tableName), strategy.interfaceClazzName(tableName), name))
+                .addParameter(int.class, "value")
+                .addCode(CodeBlock.builder()
+                        .beginControlFlow("for ($T t : values())",
+                                ClassName.get(strategy.interfacePackageName(tableName), strategy.interfaceClazzName(tableName), name))
+                        .addStatement("if ( t.value == value) return t")
+                        .endControlFlow().addStatement("return null").build())
+                .build());
+
+        parent.addType(ts.build());
     }
 
     public void generateRecord(String tableName, FieldMeta[] fields) throws IOException {
@@ -166,6 +210,9 @@ public class TypeGenerator {
     protected void generateGetterSetter(TypeSpec.Builder ts, FieldMeta[] fields, int type) {
         for (int i = 0; i < fields.length; i++) {
             ts.addMethod(generateGetter(i, fields[i], type));
+            if(type == INTERFACE) {
+                generateEnumNameGetter(ts, fields[i]);
+            }
             ts.addMethod(generateSetter(i, fields[i], type));
         }
     }
@@ -196,25 +243,39 @@ public class TypeGenerator {
         String nameLC = StringUtils.toCamelCaseLC(field.getName());
         MethodSpec.Builder b = MethodSpec.methodBuilder("get" + StringUtils.toCamelCase(field.getName()))
                 .addModifiers(Modifier.PUBLIC)
-                .addAnnotation(Override.class)
                 .returns(field.getType())
                 .addJavadoc("获取`" + field.getNameDesc() + "`");
 
         if(INTERFACE == type) {
             b.addModifiers(Modifier.ABSTRACT);
         } else if(RECORD == type) {
+            b.addAnnotation(Override.class);
             b.addStatement("return ($T)get($L)", field.getType(), index);
         } else if(POJO == type) {
+            b.addAnnotation(Override.class);
             b.addStatement("return this.$N", nameLC);
         }
         return b.build();
+    }
+
+    protected void generateEnumNameGetter(TypeSpec.Builder ts, FieldMeta field) {
+        if(StringUtils.isEmpty(field.getEnums())) {
+            return;
+        }
+        MethodSpec.Builder b = MethodSpec.methodBuilder("get" + StringUtils.toCamelCase(field.getName()) + "Name")
+                .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
+                .returns(String.class)
+                .addJavadoc("获取`" + field.getNameDesc() + "`名称");
+
+        b.addStatement("return $L.from($L).name", StringUtils.toCamelCase(field.getName()), "get" + StringUtils.toCamelCase(field.getName()) + "()");
+
+        ts.addMethod(b.build());
     }
 
     protected MethodSpec generateSetter(int index, FieldMeta field, int type) {
         String nameLC = StringUtils.toCamelCaseLC(field.getName());
         MethodSpec.Builder b = MethodSpec.methodBuilder("set" + StringUtils.toCamelCase(field.getName()))
                 .addModifiers(Modifier.PUBLIC)
-                .addAnnotation(Override.class)
                 .addParameter(field.getType(), nameLC)
                 .returns(void.class)
                 .addJavadoc("设置`" + field.getNameDesc() + "`");
@@ -222,8 +283,10 @@ public class TypeGenerator {
         if(INTERFACE == type) {
             b.addModifiers(Modifier.ABSTRACT);
         } else if(RECORD == type) {
+            b.addAnnotation(Override.class);
             b.addStatement("set($L, $N)", index, nameLC);
         } else if(POJO == type) {
+            b.addAnnotation(Override.class);
             b.addStatement("this.$N = $N", nameLC, nameLC);
         }
 
@@ -290,6 +353,10 @@ public class TypeGenerator {
 
         default String getNameDesc() {
             return getComment();
+        }
+
+        default String getEnums() {
+            return "";
         }
 
     }
@@ -427,6 +494,11 @@ public class TypeGenerator {
         @Override
         public String getNameDesc() {
             return fieldConfig.getFieldNameDesc();
+        }
+
+        @Override
+        public String getEnums() {
+            return fieldConfig.getEnums();
         }
     }
 
