@@ -13,9 +13,6 @@ import org.jooq.Field;
 import org.jooq.impl.TableImpl;
 import org.jooq.tools.StringUtils;
 
-import lombok.extern.slf4j.Slf4j;
-
-@Slf4j
 public class TypeGenerator implements Generator {
     private TypeGeneratorStrategy strategy;
 

@@ -12,6 +12,7 @@ import javax.lang.model.element.Modifier;
 import org.cooder.jooq.mate.types.AbstractRecord;
 import org.jooq.DSLContext;
 import org.jooq.Field;
+import org.jooq.impl.DSL;
 import org.jooq.tools.StringUtils;
 import org.springframework.stereotype.Repository;
 
@@ -406,7 +407,7 @@ class RepoGenerator implements Generator {
         generateGetter(ts, table);
         generateLister(ts, table);
 
-        output(strategy.getIndent(), strategy.getDirectory(), strategy.repoPackageName(tableName), ts.build());
+        output(strategy.getIndent(), strategy.getRepoDirectory(), strategy.repoPackageName(tableName), ts.build());
     }
 
     private void generateCreater(TypeSpec.Builder ts, TableMeta table) {
@@ -440,7 +441,7 @@ class RepoGenerator implements Generator {
         b.returns(pojoCN);
 
         b.addCode(CodeBlock.builder()
-                .addStatement("SelectConditionStep sql = db.selectFrom(rec.getTable()).where(\"1=1\")")
+                .addStatement("SelectConditionStep sql = db.selectFrom(rec.getTable()).where($T.noCondition())", DSL.class)
                 .addStatement("$T[] fields = rec.fields()", Field.class)
                 .beginControlFlow("for ($T field : fields)", Field.class)
                 .beginControlFlow("if (field.changed(rec))")
@@ -462,7 +463,7 @@ class RepoGenerator implements Generator {
         b.returns(ParameterizedTypeName.get(ClassName.get(List.class), pojoCN));
 
         b.addCode(CodeBlock.builder()
-                .addStatement("SelectConditionStep sql = db.selectFrom(rec.getTable()).where(\"1=1\")")
+                .addStatement("SelectConditionStep sql = db.selectFrom(rec.getTable()).where($T.noCondition())", DSL.class)
                 .addStatement("$T[] fields = rec.fields()", Field.class)
                 .beginControlFlow("for ($T field : fields)", Field.class)
                 .beginControlFlow("if (field.changed(rec))")

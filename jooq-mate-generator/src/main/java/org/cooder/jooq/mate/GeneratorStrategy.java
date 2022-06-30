@@ -7,13 +7,9 @@ import lombok.Setter;
 @Setter
 public class GeneratorStrategy {
     protected String directory = "./target/generated-sources/";
-    protected String packageName = "org.cooder.jooq.generate";
 
 
 }
 
 class RepoGeneratorStrategy extends GeneratorStrategy {
-    public String repoPackage() {
-        return getPackageName() + ".repo";
-    }
 }

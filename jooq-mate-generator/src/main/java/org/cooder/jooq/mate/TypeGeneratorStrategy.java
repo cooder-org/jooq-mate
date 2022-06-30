@@ -26,6 +26,9 @@ public class TypeGeneratorStrategy extends GeneratorStrategy {
     private String indent = "    ";
 
     @Getter
+    private String packageName = "org.cooder.jooq";
+
+    @Getter
     @Setter
     private String jooqPackageName;
     private Set<String> ignoreFieldNames = new HashSet<>();
@@ -243,14 +246,22 @@ public class TypeGeneratorStrategy extends GeneratorStrategy {
     }
 
     public String repoPackageName(String tableName) {
-        return getTypePackageName() + ".repos" + subpackage(tableName);
+        return getRepoPakcgaeName() + subpackage(tableName);
+    }
+
+    public String servicePackageName(String tableName) {
+        return getServicePackageName() + subpackage(tableName);
+    }
+
+    public String apiPackageName(String tableName) {
+        return getApiPackageName() + subpackage(tableName);
     }
 
     public String recordPackageName(String tableName) {
         return getTypePackageName() + ".records" + subpackage(tableName);
     }
 
-    public String jooqRecordPackageName(String tableName) {
+    public String jooqRecordPackageName() {
         return getJooqPackageName() + ".tables.records";
     }
 
@@ -279,7 +290,7 @@ public class TypeGeneratorStrategy extends GeneratorStrategy {
     }
 
     public ClassName jooqRecordClassName(String tableName) {
-        return ClassName.get(jooqRecordPackageName(tableName), recordClazzName(tableName));
+        return ClassName.get(jooqRecordPackageName(), recordClazzName(tableName));
     }
 
     public ClassName pojoClassName(String tableName) {
@@ -288,6 +299,14 @@ public class TypeGeneratorStrategy extends GeneratorStrategy {
 
     public ClassName repoClassName(String tableName) {
         return ClassName.get(repoPackageName(tableName), repoClazzName(tableName));
+    }
+
+    public boolean isGenerateRepo(String tableName) {
+        return generateRepo;
+    }
+
+    public String getRepoDirectory() {
+        return repoStrategy.getDirectory();
     }
 
     private TypeName typeNameFrom(ClassName itc, String name) {
@@ -357,9 +376,4 @@ public class TypeGeneratorStrategy extends GeneratorStrategy {
             return ignoreFieldNames.contains(fieldName);
         }
     }
-
-    public boolean isGenerateRepo(String tableName) {
-        return generateRepo;
-    }
-
 }

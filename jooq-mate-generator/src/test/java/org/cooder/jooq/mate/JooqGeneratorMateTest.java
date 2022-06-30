@@ -83,7 +83,7 @@ public class JooqGeneratorMateTest {
     @Test
     public final void testGenerateByConfig() {
         String directory = "./target/generated-sources/";
-        String packageName = "org.cooder.jooq.type";
+        String packageName = "org.cooder.jooq";
 
         String resourceName = "jooq-mate-config.xlsx";
 
@@ -94,9 +94,9 @@ public class JooqGeneratorMateTest {
         String[] args = new String[] { file.getAbsolutePath() };
         new CommandLine(new MateGeneratorTool()).execute(args);
 
-        checkFileExistAndRemove(directory + P(packageName + ".house"), "HouseLayoutTest.java");
-        checkFileExistAndRemove(directory + P(packageName + ".records.house"), "HouseLayoutTestRecord.java");
-        checkFileExistAndRemove(directory + P(packageName + ".pojos.house"), "HouseLayoutTestEntity.java");
-        checkFileExistAndRemove(directory + P(packageName + ".repos.house"), "HouseLayoutTestRepo.java");
+        checkFileExistAndRemove(directory + P(packageName + ".type.house"), "HouseLayoutTest.java");
+        checkFileExistAndRemove(directory + P(packageName + ".type.records.house"), "HouseLayoutTestRecord.java");
+        checkFileExistAndRemove(directory + P(packageName + ".type.pojos.house"), "HouseLayoutTestEntity.java");
+        checkFileExistAndRemove(directory + P(packageName + ".repo.house"), "HouseLayoutTestRepo.java");
     }
 }
