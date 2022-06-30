@@ -11,6 +11,7 @@ import javax.lang.model.element.Modifier;
 
 import org.cooder.jooq.mate.types.AbstractRecord;
 import org.jooq.DSLContext;
+import org.jooq.Field;
 import org.jooq.tools.StringUtils;
 import org.springframework.stereotype.Repository;
 
@@ -50,6 +51,9 @@ interface FieldMeta {
 }
 
 public interface Generator {
+    String valueVar = "value";
+    String nameVar = "name";
+
     void generate(TableMeta table);
 
     default boolean ignore(TypeGeneratorStrategy strategy, TableMeta table, FieldMeta field) {
@@ -70,6 +74,12 @@ public interface Generator {
                 .returns(field.getType())
                 .addJavadoc("获取`" + field.getNameDesc() + "`");
         return b;
+    }
+
+    default void addSuppressWarnings(MethodSpec.Builder b) {
+        b.addAnnotation(AnnotationSpec.builder(SuppressWarnings.class)
+                .addMember(valueVar, "{$S, $S}", "unchecked", "rawtypes")
+                .build());
     }
 
     default MethodSpec.Builder generateSetter(TableMeta table, FieldMeta field) {
@@ -121,7 +131,7 @@ class TypeInterfaceGenerator implements Generator {
 
         Arrays.asList(fields).forEach(f -> {
             generateGetter(ts, table, f);
-            generateEnumGetter(ts, table, f);
+            generateEnumGetter(ts, f);
             generateSetter(ts, table, f);
         });
 
@@ -142,7 +152,7 @@ class TypeInterfaceGenerator implements Generator {
         ts.addMethod(b.build());
     }
 
-    private void generateEnumGetter(Builder ts, TableMeta table, FieldMeta f) {
+    private void generateEnumGetter(Builder ts, FieldMeta f) {
         String enumString = f.getEnums();
         if(StringUtils.isEmpty(enumString)) {
             return;
@@ -178,20 +188,20 @@ class TypeInterfaceGenerator implements Generator {
             ts.addEnumConstant(ss[1], TypeSpec.anonymousClassBuilder("$L, $S", ss[0], ss[1]).build());
         }
 
-        ts.addField(FieldSpec.builder(int.class, "value", Modifier.PUBLIC, Modifier.FINAL).build());
-        ts.addField(FieldSpec.builder(String.class, "name", Modifier.PUBLIC, Modifier.FINAL).build());
+        ts.addField(FieldSpec.builder(int.class, valueVar, Modifier.PUBLIC, Modifier.FINAL).build());
+        ts.addField(FieldSpec.builder(String.class, nameVar, Modifier.PUBLIC, Modifier.FINAL).build());
         ts.addMethod(MethodSpec.constructorBuilder()
                 .addModifiers(Modifier.PRIVATE)
-                .addParameter(int.class, "value")
-                .addParameter(String.class, "name")
-                .addStatement("this.value = value")
-                .addStatement("this.name = name")
+                .addParameter(int.class, valueVar)
+                .addParameter(String.class, nameVar)
+                .addStatement("this.$L = $L", valueVar, valueVar)
+                .addStatement("this.$L = $L", nameVar, nameVar)
                 .build());
 
         ts.addMethod(MethodSpec.methodBuilder("from")
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
                 .returns(enumClassName)
-                .addParameter(int.class, "value")
+                .addParameter(int.class, valueVar)
                 .addCode(CodeBlock.builder()
                         .beginControlFlow("for ($T e : values())", enumClassName)
                         .addStatement("if ( e.value == value) return e")
@@ -400,18 +410,10 @@ class RepoGenerator implements Generator {
     }
 
     private void generateCreater(TypeSpec.Builder ts, TableMeta table) {
-        String tableName = table.getName();
-        ClassName intrCN = strategy.interfaceClassName(tableName);
-        ClassName pojoCN = strategy.pojoClassName(tableName);
-        MethodSpec.Builder b = MethodSpec.methodBuilder("create" + intrCN.simpleName())
-                .addModifiers(Modifier.PUBLIC)
-                .returns(void.class)
-                .addParameter(pojoCN, "entity");
+        MethodSpec.Builder b = generateMethod(table, "create");
+        b.returns(void.class);
 
-        ClassName jooqRecordCN = strategy.jooqRecordClassName(tableName);
         b.addCode(CodeBlock.builder()
-                .addStatement("Record rec  = new $T()", jooqRecordCN)
-                .addStatement("rec.from(entity)")
                 .addStatement("rec.save()")
                 .build());
 
@@ -419,18 +421,10 @@ class RepoGenerator implements Generator {
     }
 
     private void generateUpdater(TypeSpec.Builder ts, TableMeta table) {
-        String tableName = table.getName();
-        ClassName intrCN = strategy.interfaceClassName(tableName);
-        ClassName pojoCN = strategy.pojoClassName(tableName);
-        MethodSpec.Builder b = MethodSpec.methodBuilder("update" + intrCN.simpleName())
-                .addModifiers(Modifier.PUBLIC)
-                .returns(void.class)
-                .addParameter(pojoCN, "entity");
+        MethodSpec.Builder b = generateMethod(table, "update");
+        b.returns(void.class);
 
-        ClassName jooqRecordCN = strategy.jooqRecordClassName(tableName);
         b.addCode(CodeBlock.builder()
-                .addStatement("Record rec  = new $T()", jooqRecordCN)
-                .addStatement("rec.from(entity)")
                 .addStatement("rec.update()")
                 .build());
 
@@ -439,23 +433,16 @@ class RepoGenerator implements Generator {
 
     private void generateGetter(TypeSpec.Builder ts, TableMeta table) {
         String tableName = table.getName();
-        ClassName intrCN = strategy.interfaceClassName(tableName);
         ClassName pojoCN = strategy.pojoClassName(tableName);
-        MethodSpec.Builder b = MethodSpec.methodBuilder("get" + intrCN.simpleName())
-                .addModifiers(Modifier.PUBLIC)
-                .returns(pojoCN)
-                .addParameter(pojoCN, "entity")
-                .addAnnotation(AnnotationSpec.builder(SuppressWarnings.class)
-                        .addMember("value", "{$S, $S}", "unchecked", "rawtypes")
-                        .build());
 
-        ClassName jooqRecordCN = strategy.jooqRecordClassName(tableName);
+        MethodSpec.Builder b = generateMethod(table, "get");
+        addSuppressWarnings(b);
+        b.returns(pojoCN);
+
         b.addCode(CodeBlock.builder()
-                .addStatement("Record rec  = new $T()", jooqRecordCN)
-                .addStatement("rec.from(entity)")
                 .addStatement("SelectConditionStep sql = db.selectFrom(rec.getTable()).where(\"1=1\")")
-                .addStatement("Field[] fields = rec.fields()")
-                .beginControlFlow("for (Field field : fields)")
+                .addStatement("$T[] fields = rec.fields()", Field.class)
+                .beginControlFlow("for ($T field : fields)", Field.class)
                 .beginControlFlow("if (field.changed(rec))")
                 .addStatement("sql = sql.and(field.eq(rec.get(field)))")
                 .endControlFlow()
@@ -468,23 +455,16 @@ class RepoGenerator implements Generator {
 
     private void generateLister(TypeSpec.Builder ts, TableMeta table) {
         String tableName = table.getName();
-        ClassName intrCN = strategy.interfaceClassName(tableName);
         ClassName pojoCN = strategy.pojoClassName(tableName);
-        MethodSpec.Builder b = MethodSpec.methodBuilder("list" + intrCN.simpleName())
-                .addModifiers(Modifier.PUBLIC)
-                .returns(ParameterizedTypeName.get(ClassName.get(List.class), pojoCN))
-                .addParameter(pojoCN, "entity")
-                .addAnnotation(AnnotationSpec.builder(SuppressWarnings.class)
-                        .addMember("value", "{$S, $S}", "unchecked", "rawtypes")
-                        .build());
 
-        ClassName jooqRecordCN = strategy.jooqRecordClassName(tableName);
+        MethodSpec.Builder b = generateMethod(table, "list");
+        addSuppressWarnings(b);
+        b.returns(ParameterizedTypeName.get(ClassName.get(List.class), pojoCN));
+
         b.addCode(CodeBlock.builder()
-                .addStatement("Record rec  = new $T()", jooqRecordCN)
-                .addStatement("rec.from(entity)")
                 .addStatement("SelectConditionStep sql = db.selectFrom(rec.getTable()).where(\"1=1\")")
-                .addStatement("Field[] fields = rec.fields()")
-                .beginControlFlow("for (Field field : fields)")
+                .addStatement("$T[] fields = rec.fields()", Field.class)
+                .beginControlFlow("for ($T field : fields)", Field.class)
                 .beginControlFlow("if (field.changed(rec))")
                 .addStatement("sql = sql.and(field.eq(rec.get(field)))")
                 .endControlFlow()
@@ -493,6 +473,20 @@ class RepoGenerator implements Generator {
                 .build());
 
         ts.addMethod(b.build());
+    }
+
+    private MethodSpec.Builder generateMethod(TableMeta table, String type) {
+        String tableName = table.getName();
+        ClassName intrCN = strategy.interfaceClassName(tableName);
+        ClassName pojoCN = strategy.pojoClassName(tableName);
+        MethodSpec.Builder b = MethodSpec.methodBuilder(type + intrCN.simpleName())
+                .addModifiers(Modifier.PUBLIC)
+                .addParameter(pojoCN, "entity");
+
+        ClassName jooqRecordCN = strategy.jooqRecordClassName(tableName);
+        b.addStatement("$T rec  = new $T()", jooqRecordCN, jooqRecordCN);
+        b.addStatement("rec.from(entity)");
+        return b;
     }
 
     public static RepoGenerator of(TypeGeneratorStrategy strategy) {
