@@ -16,4 +16,12 @@ public class MateUtils {
         }
         return ret.toArray(new String[0]);
     }
+
+    public static String repeat(String base, int count) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < count; i++) {
+            sb.append(base);
+        }
+        return sb.toString();
+    }
 }

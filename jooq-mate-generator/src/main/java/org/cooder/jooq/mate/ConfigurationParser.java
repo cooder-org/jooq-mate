@@ -85,7 +85,9 @@ public class ConfigurationParser {
                 return;
             }
             Object value = cast(v.getConfigName(), v.getConfigValue(), config.getClass());
-            TypeUtils.setValue(config, v.getConfigName(), value);
+            if(value != null) {
+                TypeUtils.setValue(config, v.getConfigName(), value);
+            }
         });
     }
 
@@ -99,7 +101,7 @@ public class ConfigurationParser {
         if(pt == boolean.class || pt == Boolean.class) {
             value = Boolean.valueOf((String) value);
         } else if(pt == String[].class) {
-            value = value.toString().split(",");
+            value = MateUtils.split(value.toString(), ",");
         } else if(pt == int.class || pt == Integer.class) {
             value = Integer.valueOf(value.toString());
         } else if(pt == UniqKey.class) {
@@ -150,8 +152,9 @@ public class ConfigurationParser {
                     ((UniqKey) value).setName(data.getConfigValue1());
                     ((UniqKey) value).setValue(data.getConfigValue2());
                 }
-
-                TypeUtils.setValue(tableConfig, data.getConfigName(), value);
+                if(value != null) {
+                    TypeUtils.setValue(tableConfig, data.getConfigName(), value);
+                }
                 log.info("table config readed, {} : {}", data.getConfigName(), value);
             }
         }

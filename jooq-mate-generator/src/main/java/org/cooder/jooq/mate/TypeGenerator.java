@@ -56,6 +56,7 @@ public class TypeGenerator implements Generator {
         TypeInterfaceGenerator.of(strategy).generate(table);
         TypeRecordGenerator.of(strategy).generate(table);
         TypePojoGenerator.of(strategy).generate(table);
+        RepoGenerator.of(strategy).generate(table);
     }
 
     private boolean ignoreTable(TableMeta table) {
@@ -76,6 +77,7 @@ public class TypeGenerator implements Generator {
                 .withInterfaceNameConverter((s, tableName) -> conf.getTableConfig(tableName).getJooqmateInterfaceName())
                 .withRecordNameConverter((s, tableName) -> conf.getTableConfig(tableName).getJooqmateRecordName())
                 .withPojoNameConverter((s, tableName) -> conf.getTableConfig(tableName).getJooqmatePojoName());
+        this.strategy.setJooqPackageName(conf.jooqConfig().getPackageName());
 
         for (TableConfig tc : conf.tables) {
             this.strategy.withTableStrategy(tc.getTableName(), new TableStrategy()

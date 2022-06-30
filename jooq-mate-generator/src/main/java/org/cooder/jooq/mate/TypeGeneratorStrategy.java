@@ -20,28 +20,19 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 
-public class TypeGeneratorStrategy {
+public class TypeGeneratorStrategy extends GeneratorStrategy {
+
     @Getter
     private String indent = "    ";
 
     @Getter
-    private String directory;
-
-    @Getter
-    private String repoDirectory;
-
-    @Getter
-    private String serviceDirectory;
-
-    @Getter
-    private String apiDirectory;
-
-    @Getter
-    private String packageName = "org.cooder.jooq.generate";
+    @Setter
+    private String jooqPackageName;
     private Set<String> ignoreFieldNames = new HashSet<>();
     private Set<String> includeTableNames = new HashSet<>();
     private Set<String> excludeTableNames = new HashSet<>();
     private Map<String, TableStrategy> tableStrategies = new HashMap<>();
+    private RepoGeneratorStrategy repoStrategy = new RepoGeneratorStrategy();
 
     @Setter
     @Accessors(fluent = true)
@@ -59,12 +50,22 @@ public class TypeGeneratorStrategy {
     @Accessors(fluent = true)
     private boolean generatePojo = true;
 
+    @Setter
+    @Accessors(fluent = true)
+    private boolean generateRepo = true;
+
     private NameConverter interfaceNameConverter;
     private NameConverter recordNameConverter;
     private NameConverter pojoNameConverter;
+    private NameConverter repoNameConverter;
 
     public TypeGeneratorStrategy withIndent(String indent) {
         this.indent = indent;
+        return this;
+    }
+
+    public GeneratorStrategy withIndent(int spaces) {
+        withIndent(MateUtils.repeat(" ", spaces));
         return this;
     }
 
@@ -204,6 +205,14 @@ public class TypeGeneratorStrategy {
         return StringUtils.isEmpty(name) ? convertInterfaceName(tableName) + "Entity" : name;
     }
 
+    public String convertRepoName(String tableName) {
+        String name = null;
+        if(repoNameConverter != null) {
+            name = repoNameConverter.apply(this, tableName);
+        }
+        return StringUtils.isEmpty(name) ? convertInterfaceName(tableName) + "Repo" : name;
+    }
+
     public String getTypePackageName() {
         return getPackageName() + ".type";
     }
@@ -233,8 +242,16 @@ public class TypeGeneratorStrategy {
         return getTypePackageName() + ".pojos" + subpackage(tableName);
     }
 
+    public String repoPackageName(String tableName) {
+        return getTypePackageName() + ".repos" + subpackage(tableName);
+    }
+
     public String recordPackageName(String tableName) {
         return getTypePackageName() + ".records" + subpackage(tableName);
+    }
+
+    public String jooqRecordPackageName(String tableName) {
+        return getJooqPackageName() + ".tables.records";
     }
 
     public String interfaceClazzName(String tableName) {
@@ -249,6 +266,10 @@ public class TypeGeneratorStrategy {
         return convertPojoName(tableName);
     }
 
+    public String repoClazzName(String tableName) {
+        return convertRepoName(tableName);
+    }
+
     public ClassName interfaceClassName(String tableName) {
         return ClassName.get(interfacePackageName(tableName), interfaceClazzName(tableName));
     }
@@ -257,8 +278,16 @@ public class TypeGeneratorStrategy {
         return ClassName.get(recordPackageName(tableName), recordClazzName(tableName));
     }
 
+    public ClassName jooqRecordClassName(String tableName) {
+        return ClassName.get(jooqRecordPackageName(tableName), recordClazzName(tableName));
+    }
+
     public ClassName pojoClassName(String tableName) {
         return ClassName.get(pojoPackageName(tableName), pojoClazzName(tableName));
+    }
+
+    public ClassName repoClassName(String tableName) {
+        return ClassName.get(repoPackageName(tableName), repoClazzName(tableName));
     }
 
     private TypeName typeNameFrom(ClassName itc, String name) {
@@ -328,4 +357,9 @@ public class TypeGeneratorStrategy {
             return ignoreFieldNames.contains(fieldName);
         }
     }
+
+    public boolean isGenerateRepo(String tableName) {
+        return generateRepo;
+    }
+
 }

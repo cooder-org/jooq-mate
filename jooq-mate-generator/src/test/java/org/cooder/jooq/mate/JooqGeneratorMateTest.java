@@ -52,7 +52,7 @@ public class JooqGeneratorMateTest {
                             Tables.SPACE.getName())
                     .withTableStrategy(Tables.HOUSE_LAYOUT.getName(), houseStategy)
                     .withTableStrategy(Tables.SPACE.getName(), houseStategy);
-
+            strategy.setJooqPackageName("org.cooder.jooq.db");
             TypeGenerator generator = new TypeGenerator(strategy);
 
             generator.generateTables(Tables.class.getName());
@@ -97,5 +97,6 @@ public class JooqGeneratorMateTest {
         checkFileExistAndRemove(directory + P(packageName + ".house"), "HouseLayoutTest.java");
         checkFileExistAndRemove(directory + P(packageName + ".records.house"), "HouseLayoutTestRecord.java");
         checkFileExistAndRemove(directory + P(packageName + ".pojos.house"), "HouseLayoutTestEntity.java");
+        checkFileExistAndRemove(directory + P(packageName + ".repos.house"), "HouseLayoutTestRepo.java");
     }
 }
