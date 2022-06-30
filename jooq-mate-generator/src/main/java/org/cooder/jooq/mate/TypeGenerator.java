@@ -111,6 +111,7 @@ public class TypeGenerator implements Generator {
             }
             return metas;
         }
+
     }
 
     private static class JooqFieldMeta implements FieldMeta {
@@ -162,6 +163,11 @@ public class TypeGenerator implements Generator {
             }
 
             return ret;
+        }
+
+        @Override
+        public boolean hasUniqKey() {
+            return tableConfig.getUniqueKey() != null;
         }
     }
 
@@ -223,6 +229,11 @@ public class TypeGenerator implements Generator {
         @Override
         public String getEnums() {
             return fieldConfig.getEnums();
+        }
+
+        @Override
+        public boolean isUniqKey() {
+            return fieldConfig.isUniqKey();
         }
     }
 }

@@ -3,8 +3,11 @@ package org.cooder.jooq.mate;
 import java.beans.PropertyDescriptor;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.cooder.jooq.mate.ConfigurationParser.TableConfig.FieldConfig;
@@ -291,14 +294,33 @@ public class ConfigurationParser {
 
         public TableConfig addField(FieldConfig c) {
             this.fields.add(c);
+            if(isUniqKeyPart(c.getFieldName())) {
+                c.setUniqKey(true);
+            }
             return this;
         }
 
+        public boolean isUniqKeyPart(String fieldName) {
+            return uniqueKey != null && uniqueKey.contains(fieldName);
+        }
+
         @Getter
-        @Setter
         public static class UniqKey {
+            @Setter
             String name;
+
             String value;
+
+            private Set<String> fieldNames = new HashSet<>();
+
+            public void setValue(String value) {
+                this.value = value;
+                fieldNames = new HashSet<>(Arrays.asList(MateUtils.split(value, ",")));
+            }
+
+            public boolean contains(String fieldName) {
+                return fieldNames.contains(fieldName);
+            }
         }
 
         @Getter
@@ -326,6 +348,8 @@ public class ConfigurationParser {
 
             @ExcelProperty(index = 6)
             private boolean autoIncrement;
+
+            private boolean uniqKey;
 
             public String getComment() {
                 StringBuilder sb = new StringBuilder();

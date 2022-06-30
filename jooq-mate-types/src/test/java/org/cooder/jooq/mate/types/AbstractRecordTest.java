@@ -19,7 +19,7 @@ public class AbstractRecordTest {
 
     public static class RecordImpl extends AbstractRecord<RecordEntity> {
         public static final AbstractRecord.Field[] FIELDS = new Field[] {
-                AbstractRecord.Field.builder().name("houseLayoutCode").type(String.class).desc("户型code").build(),
+                AbstractRecord.Field.builder().name("houseLayoutCode").type(String.class).desc("户型code").uniqKey(true).build(),
         };
 
         public RecordImpl() {
@@ -68,6 +68,21 @@ public class AbstractRecordTest {
         Assert.assertEquals(RecordImpl.FIELDS[0].getName(), fields[0].getName());
         Assert.assertEquals(RecordImpl.FIELDS[0].getDesc(), fields[0].getDesc());
         Assert.assertEquals(RecordImpl.FIELDS[0].getType(), fields[0].getType());
+    }
+
+    @Test
+    public final void testAbstractRecordDirty() {
+        RecordImpl rec = new RecordImpl();
+        RecordEntity pojo = RecordEntity.builder().houseLayoutCode("1001").build();
+        rec.fromPojo(pojo);
+
+        RecordEntity pojo2 = RecordEntity.builder().houseLayoutCode("1002").build();
+        rec.fromPojo(pojo2);
+        Assert.assertEquals(true, rec.changed());
+        Assert.assertEquals(true, rec.changed("houseLayoutCode"));
+        Assert.assertEquals("1002", rec.getHouseLayoutCode());
+        System.out.println(rec);
+        System.out.println(rec.diff());
     }
 
 }

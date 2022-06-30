@@ -12,6 +12,7 @@ import javax.lang.model.element.Modifier;
 import org.cooder.jooq.mate.types.AbstractRecord;
 import org.jooq.DSLContext;
 import org.jooq.Field;
+import org.jooq.Table;
 import org.jooq.impl.DSL;
 import org.jooq.tools.StringUtils;
 import org.springframework.stereotype.Repository;
@@ -33,6 +34,10 @@ interface TableMeta {
     String getComment();
 
     FieldMeta[] fields();
+
+    default boolean hasUniqKey() {
+        return false;
+    }
 }
 
 interface FieldMeta {
@@ -48,6 +53,10 @@ interface FieldMeta {
 
     default String getEnums() {
         return "";
+    }
+
+    default boolean isUniqKey() {
+        return false;
     }
 }
 
@@ -264,8 +273,8 @@ class TypeRecordGenerator implements Generator {
 
         for (int i = 0; i < fields.length; i++) {
             String fieldName = StringUtils.toCamelCaseLC(fields[i].getName());
-            cb.add(strategy.getIndent() + "$T.builder().name($S).type($T.class).desc($S).build(),\n", AbstractRecord.Field.class,
-                    fieldName, fields[i].getType(), fields[i].getNameDesc());
+            cb.add(strategy.getIndent() + "$T.builder().name($S).type($T.class).desc($S).uniqKey($L).build(),\n", AbstractRecord.Field.class,
+                    fieldName, fields[i].getType(), fields[i].getNameDesc(), fields[i].isUniqKey());
         }
         cb.add("}");
         b.initializer(cb.build());
@@ -404,7 +413,11 @@ class RepoGenerator implements Generator {
 
         generateCreater(ts, table);
         generateUpdater(ts, table);
-        generateGetter(ts, table);
+        if(table.hasUniqKey()) {
+            generateFlatGetter(ts, table);
+        } else {
+            generateGetter(ts, table);
+        }
         generateLister(ts, table);
 
         output(strategy.getIndent(), strategy.getRepoDirectory(), strategy.repoPackageName(tableName), ts.build());
@@ -450,6 +463,37 @@ class RepoGenerator implements Generator {
                 .endControlFlow()
                 .addStatement("return sql.fetchOne().into($T.class)", pojoCN)
                 .build());
+        ts.addMethod(b.build());
+    }
+
+    private void generateFlatGetter(TypeSpec.Builder ts, TableMeta table) {
+        String tableName = table.getName();
+        ClassName intrCN = strategy.interfaceClassName(tableName);
+        ClassName pojoCN = strategy.pojoClassName(tableName);
+
+        MethodSpec.Builder b = MethodSpec.methodBuilder("get" + intrCN.simpleName())
+                .addModifiers(Modifier.PUBLIC);
+
+        for (FieldMeta f : table.fields()) {
+            if(f.isUniqKey()) {
+                b.addParameter(f.getType(), StringUtils.toCamelCaseLC(f.getName()));
+            }
+        }
+
+        addSuppressWarnings(b);
+        b.returns(pojoCN);
+
+        ClassName jooqRecordCN = strategy.jooqRecordClassName(tableName);
+        b.addStatement("$T rec  = new $T()", jooqRecordCN, jooqRecordCN);
+        b.addStatement("$T table = rec.getTable()", Table.class)
+                .addStatement("SelectConditionStep sql = db.selectFrom(table).where($T.noCondition())", DSL.class);
+        for (FieldMeta f : table.fields()) {
+            if(f.isUniqKey()) {
+                String nameLC = StringUtils.toCamelCaseLC(f.getName());
+                b.addStatement("sql = sql.and(table.field($S, $T.class).eq($L))", f.getName(), f.getType(), nameLC);
+            }
+        }
+        b.addStatement("return sql.fetchOne().into($T.class)", pojoCN);
 
         ts.addMethod(b.build());
     }

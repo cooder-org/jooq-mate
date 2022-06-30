@@ -15,6 +15,7 @@ public abstract class AbstractRecord<T> {
     private Object[] values;
     private Object[] originals;
     private BitSet changed;
+    private boolean dirty;
     private final Class<T> pojoClass;
 
     private final Map<String, Integer> indexMap = new HashMap<>();
@@ -79,9 +80,16 @@ public abstract class AbstractRecord<T> {
     }
 
     public AbstractRecord<T> fromPojo(T pojo) {
-        for (int i = 0; i < fields.length; i++) {
-            Object value = TypeUtils.getValue(pojo, fields[i].name);
-            iset(i, value);
+        if(!dirty) {
+            for (int i = 0; i < fields.length; i++) {
+                Object value = TypeUtils.getValue(pojo, fields[i].name);
+                iset(i, value);
+            }
+        } else {
+            for (int i = 0; i < fields.length; i++) {
+                Object value = TypeUtils.getValue(pojo, fields[i].name);
+                set(i, value);
+            }
         }
         return this;
     }
@@ -98,9 +106,22 @@ public abstract class AbstractRecord<T> {
         return sb.toString();
     }
 
+    public String diff() {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < fields.length; i++) {
+            if(changed.get(i)) {
+                Field f = fields[i];
+                String str = String.format("`%s` changed, from `%s` to `%s`\n", f.name, originals[i], values[i]);
+                sb.append(str);
+            }
+        }
+        return sb.toString();
+    }
+
     private void iset(int index, Object value) {
         this.originals[index] = value;
         this.values[index] = value;
+        this.dirty = true;
     }
 
     private int index(String name) {
@@ -123,5 +144,6 @@ public abstract class AbstractRecord<T> {
         private final String name;
         private final String desc;
         private final Class<?> type;
+        private boolean uniqKey;
     }
 }
