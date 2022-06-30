@@ -1,44 +1,22 @@
 package org.cooder.jooq.mate;
 
-import java.io.File;
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalTime;
-import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
-
-import javax.lang.model.element.Modifier;
 
 import org.cooder.jooq.mate.ConfigurationParser.Config;
 import org.cooder.jooq.mate.ConfigurationParser.JooqMateConfig;
 import org.cooder.jooq.mate.ConfigurationParser.TableConfig;
 import org.cooder.jooq.mate.ConfigurationParser.TableConfig.FieldConfig;
 import org.cooder.jooq.mate.TypeGeneratorStrategy.TableStrategy;
-import org.cooder.jooq.mate.types.AbstractRecord;
 import org.jooq.Field;
 import org.jooq.impl.TableImpl;
 import org.jooq.tools.StringUtils;
 
-import com.squareup.javapoet.AnnotationSpec;
-import com.squareup.javapoet.ClassName;
-import com.squareup.javapoet.CodeBlock;
-import com.squareup.javapoet.FieldSpec;
-import com.squareup.javapoet.FieldSpec.Builder;
-import com.squareup.javapoet.JavaFile;
-import com.squareup.javapoet.MethodSpec;
-import com.squareup.javapoet.ParameterizedTypeName;
-import com.squareup.javapoet.TypeName;
-import com.squareup.javapoet.TypeSpec;
-
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class TypeGenerator {
-    private static final int INTERFACE = 1;
-    private static final int RECORD = 2;
-    private static final int POJO = 3;
-
+public class TypeGenerator implements Generator {
     private TypeGeneratorStrategy strategy;
 
     public TypeGenerator() {
@@ -49,11 +27,11 @@ public class TypeGenerator {
         this.strategy = strategy;
     }
 
-    public void generate(final Config conf) throws Exception {
+    public void generate(final Config conf) {
         withConfig(conf);
         List<TableConfig> tbs = conf.tables();
         for (TableConfig tc : tbs) {
-            generateTable(new TableConfigMeta(tc));
+            generate(new TableConfigMeta(tc));
         }
     }
 
@@ -63,253 +41,25 @@ public class TypeGenerator {
             if((f.getModifiers() & java.lang.reflect.Modifier.PUBLIC) > 0) {
                 Object table = f.get(null);
                 if(table instanceof TableImpl) {
-                    generateTable(new JooqTableMeta((TableImpl<?>) table));
+                    generate(new JooqTableMeta((TableImpl<?>) table));
                 }
             }
         }
     }
 
-    public void generateTable(TableMeta table) throws IOException {
+    @Override
+    public void generate(TableMeta table) {
         if(ignoreTable(table)) {
             return;
         }
 
-        String tableName = table.getName();
-        FieldMeta[] fields = Arrays.asList(table.fields())
-                .stream()
-                .filter(f -> !ignore(tableName, f))
-                .collect(Collectors.toList())
-                .toArray(new FieldMeta[0]);
-
-        if(strategy.isGenerateInterface(tableName)) {
-            String comment = table.getComment();
-            generateInterface(tableName, comment, fields);
-        }
-
-        if(strategy.isGenerateRecord(tableName)) {
-            generateRecord(tableName, fields);
-        }
-
-        if(strategy.isGeneratePojo(tableName)) {
-            generatePojo(tableName, fields);
-        }
-    }
-
-    public void generateInterface(String tableName, String comment, FieldMeta[] fields) throws IOException {
-        String clazzName = strategy.interfaceClazzName(tableName);
-        TypeSpec.Builder ts = TypeSpec.interfaceBuilder(clazzName)
-                .addModifiers(Modifier.PUBLIC)
-                .addJavadoc(comment);
-
-        ts.addSuperinterfaces(strategy.getGeneratedInterfaceSuperInterfaces(tableName));
-
-        generateGetterSetter(ts, fields, INTERFACE);
-
-        for (FieldMeta fm : fields) {
-            generateEnums(tableName, ts, fm);
-        }
-
-        output(strategy.interfacePackageName(tableName), ts.build());
-    }
-
-    private void generateEnums(String tableName, TypeSpec.Builder parent, FieldMeta fm) {
-        String enumString = fm.getEnums();
-        if(StringUtils.isEmpty(enumString)) {
-            return;
-        }
-
-        String name = StringUtils.toCamelCase(fm.getName());
-        TypeSpec.Builder ts = TypeSpec.enumBuilder(name)
-                .addModifiers(Modifier.PUBLIC, Modifier.STATIC);
-
-        String[] pairs = MateUtils.split(enumString, ",");
-        for (String pair : pairs) {
-            String[] ss = MateUtils.split(pair, ":");
-            ts.addEnumConstant(ss[1], TypeSpec.anonymousClassBuilder("$L, $S", ss[0], ss[1]).build());
-        }
-
-        ts.addField(FieldSpec.builder(int.class, "value", Modifier.PUBLIC, Modifier.FINAL).build());
-        ts.addField(FieldSpec.builder(String.class, "name", Modifier.PUBLIC, Modifier.FINAL).build());
-        ts.addMethod(MethodSpec.constructorBuilder()
-                .addModifiers(Modifier.PRIVATE)
-                .addParameter(int.class, "value")
-                .addParameter(String.class, "name")
-                .addCode("this.value = value;\n"
-                        + "this.name = name;\n")
-                .build());
-
-        ts.addMethod(MethodSpec.methodBuilder("from")
-                .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
-                .returns(ClassName.get(strategy.interfacePackageName(tableName), strategy.interfaceClazzName(tableName), name))
-                .addParameter(int.class, "value")
-                .addCode(CodeBlock.builder()
-                        .beginControlFlow("for ($T t : values())",
-                                ClassName.get(strategy.interfacePackageName(tableName), strategy.interfaceClazzName(tableName), name))
-                        .addStatement("if ( t.value == value) return t")
-                        .endControlFlow().addStatement("return null").build())
-                .build());
-
-        parent.addType(ts.build());
-    }
-
-    public void generateRecord(String tableName, FieldMeta[] fields) throws IOException {
-        String clazz = strategy.recordClazzName(tableName);
-        ClassName genericType = strategy.pojoClassName(tableName);
-        TypeSpec.Builder ts = TypeSpec.classBuilder(clazz)
-                .addModifiers(Modifier.PUBLIC)
-                .superclass(ParameterizedTypeName.get(ClassName.get(AbstractRecord.class), genericType))
-                .addSuperinterface(strategy.interfaceClassName(tableName));
-
-        ts.addField(generateRecordFields(fields));
-        ts.addMethod(generateRecordConstructor(genericType));
-        generateGetterSetter(ts, fields, RECORD);
-
-        output(strategy.recordPackageName(tableName), ts.build());
-    }
-
-    public void generatePojo(String tableName, FieldMeta[] fields) throws IOException {
-        ClassName pojoCN = strategy.pojoClassName(tableName);
-        TypeSpec.Builder ts = TypeSpec.classBuilder(pojoCN.simpleName())
-                .addModifiers(Modifier.PUBLIC)
-                .addSuperinterface(strategy.interfaceClassName(tableName));
-
-        TypeName superClass = strategy.getPojoSuperClass(tableName);
-        if(superClass != null) {
-            ts.superclass(superClass);
-        }
-
-        generatePojoFields(ts, fields);
-        if(strategy.isGeneratePojoWithLombok(tableName)) {
-            ts.addAnnotation(lombok.Data.class)
-                    .addAnnotation(lombok.experimental.SuperBuilder.class)
-                    .addAnnotation(lombok.NoArgsConstructor.class)
-                    .addAnnotation(AnnotationSpec.builder(lombok.ToString.class).addMember("callSuper", "true").build());
-            if(superClass != null) {
-                ts.addAnnotation(AnnotationSpec.builder(lombok.EqualsAndHashCode.class).addMember("callSuper", "true").build());
-            } else {
-                ts.addAnnotation(lombok.EqualsAndHashCode.class);
-            }
-        } else {
-            generateGetterSetter(ts, fields, POJO);
-        }
-
-        output(strategy.pojoPackageName(tableName), ts.build());
-    }
-
-    protected void generatePojoFields(TypeSpec.Builder ts, FieldMeta[] fields) {
-        for (int i = 0; i < fields.length; i++) {
-            FieldMeta f = fields[i];
-            String fieldName = StringUtils.toCamelCaseLC(f.getName());
-            FieldSpec spec = FieldSpec.builder(f.getType(), fieldName, Modifier.PRIVATE)
-                    .addJavadoc(f.getComment())
-                    .build();
-            ts.addField(spec);
-        }
-    }
-
-    protected void generateGetterSetter(TypeSpec.Builder ts, FieldMeta[] fields, int type) {
-        for (int i = 0; i < fields.length; i++) {
-            ts.addMethod(generateGetter(i, fields[i], type));
-            if(type == INTERFACE) {
-                generateEnumNameGetter(ts, fields[i]);
-            }
-            ts.addMethod(generateSetter(i, fields[i], type));
-        }
-    }
-
-    private FieldSpec generateRecordFields(FieldMeta[] fields) {
-        Builder b = FieldSpec.builder(AbstractRecord.Field[].class, "FIELDS", Modifier.PRIVATE, Modifier.STATIC, Modifier.FINAL);
-        com.squareup.javapoet.CodeBlock.Builder cb = CodeBlock.builder();
-        cb.add("new Field[] {\n");
-
-        for (int i = 0; i < fields.length; i++) {
-            String fieldName = StringUtils.toCamelCaseLC(fields[i].getName());
-            cb.add(strategy.getIndent() + "$T.builder().name($S).type($T.class).desc($S).build(),\n", AbstractRecord.Field.class,
-                    fieldName, fields[i].getType(), fields[i].getComment());
-        }
-        cb.add("}");
-        b.initializer(cb.build());
-        return b.build();
-    }
-
-    private MethodSpec generateRecordConstructor(ClassName genericType) {
-        MethodSpec.Builder b = MethodSpec.constructorBuilder()
-                .addModifiers(Modifier.PUBLIC);
-        b.addStatement("super($T.class, FIELDS)", genericType);
-        return b.build();
-    }
-
-    protected MethodSpec generateGetter(int index, FieldMeta field, int type) {
-        String nameLC = StringUtils.toCamelCaseLC(field.getName());
-        MethodSpec.Builder b = MethodSpec.methodBuilder("get" + StringUtils.toCamelCase(field.getName()))
-                .addModifiers(Modifier.PUBLIC)
-                .returns(field.getType())
-                .addJavadoc("获取`" + field.getNameDesc() + "`");
-
-        if(INTERFACE == type) {
-            b.addModifiers(Modifier.ABSTRACT);
-        } else if(RECORD == type) {
-            b.addAnnotation(Override.class);
-            b.addStatement("return ($T)get($L)", field.getType(), index);
-        } else if(POJO == type) {
-            b.addAnnotation(Override.class);
-            b.addStatement("return this.$N", nameLC);
-        }
-        return b.build();
-    }
-
-    protected void generateEnumNameGetter(TypeSpec.Builder ts, FieldMeta field) {
-        if(StringUtils.isEmpty(field.getEnums())) {
-            return;
-        }
-        MethodSpec.Builder b = MethodSpec.methodBuilder("get" + StringUtils.toCamelCase(field.getName()) + "Name")
-                .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
-                .returns(String.class)
-                .addJavadoc("获取`" + field.getNameDesc() + "`名称");
-
-        b.addStatement("return $L.from($L).name", StringUtils.toCamelCase(field.getName()), "get" + StringUtils.toCamelCase(field.getName()) + "()");
-
-        ts.addMethod(b.build());
-    }
-
-    protected MethodSpec generateSetter(int index, FieldMeta field, int type) {
-        String nameLC = StringUtils.toCamelCaseLC(field.getName());
-        MethodSpec.Builder b = MethodSpec.methodBuilder("set" + StringUtils.toCamelCase(field.getName()))
-                .addModifiers(Modifier.PUBLIC)
-                .addParameter(field.getType(), nameLC)
-                .returns(void.class)
-                .addJavadoc("设置`" + field.getNameDesc() + "`");
-
-        if(INTERFACE == type) {
-            b.addModifiers(Modifier.ABSTRACT);
-        } else if(RECORD == type) {
-            b.addAnnotation(Override.class);
-            b.addStatement("set($L, $N)", index, nameLC);
-        } else if(POJO == type) {
-            b.addAnnotation(Override.class);
-            b.addStatement("this.$N = $N", nameLC, nameLC);
-        }
-
-        return b.build();
-    }
-
-    private void output(String packageName, TypeSpec typeSpec) throws IOException {
-        JavaFile javaFile = JavaFile.builder(packageName, typeSpec)
-                .indent(strategy.getIndent())
-                .skipJavaLangImports(true)
-                .addFileComment("\nThis file is generated by JOOQ-MATE.\n")
-                .build();
-        javaFile.writeTo(new File(strategy.getDirectory()));
-
-        log.info(String.format("generated: %s.%s", packageName, typeSpec.name));
+        TypeInterfaceGenerator.of(strategy).generate(table);
+        TypeRecordGenerator.of(strategy).generate(table);
+        TypePojoGenerator.of(strategy).generate(table);
     }
 
     private boolean ignoreTable(TableMeta table) {
         return this.strategy.isIgnoreTable(table.getName());
-    }
-
-    private boolean ignore(String tableName, FieldMeta f) {
-        return this.strategy.isIgnoreField(tableName, f.getName());
     }
 
     private void withConfig(final Config conf) {
@@ -334,31 +84,6 @@ public class TypeGenerator {
                     .setGeneratedInterfaceSuperInterfaces(tc.getJooqmateInterfaceSupers())
                     .setGeneratedPojoSuperClass(tc.getJooqmatePojoSuperClass()));
         }
-    }
-
-    private interface TableMeta {
-        String getName();
-
-        String getComment();
-
-        FieldMeta[] fields();
-    }
-
-    private interface FieldMeta {
-        String getName();
-
-        Class<?> getType();
-
-        String getComment();
-
-        default String getNameDesc() {
-            return getComment();
-        }
-
-        default String getEnums() {
-            return "";
-        }
-
     }
 
     private static class JooqTableMeta implements TableMeta {
@@ -501,5 +226,4 @@ public class TypeGenerator {
             return fieldConfig.getEnums();
         }
     }
-
 }
