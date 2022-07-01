@@ -27,6 +27,7 @@ import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 import com.squareup.javapoet.TypeSpec.Builder;
+import com.squareup.javapoet.WildcardTypeName;
 
 interface TableMeta {
     String getName();
@@ -37,6 +38,10 @@ interface TableMeta {
 
     default boolean hasUniqKey() {
         return false;
+    }
+
+    default String getNameDesc() {
+        return "";
     }
 }
 
@@ -106,6 +111,10 @@ public interface Generator {
         return b;
     }
 
+    default TypeName subTableFieldType(TypeGeneratorStrategy strategy, String subTableName) {
+        return ParameterizedTypeName.get(ClassName.get(List.class), strategy.pojoClassName(subTableName));
+    }
+
     default void output(String indent, String directory, String packageName, TypeSpec typeSpec) {
         JavaFile javaFile = JavaFile.builder(packageName, typeSpec)
                 .indent(indent)
@@ -149,6 +158,9 @@ class TypeInterfaceGenerator implements Generator {
             generateSetter(ts, table, f);
         });
 
+        List<TableMeta> subTables = strategy.subTables(tableName);
+        subTables.forEach(subTable -> generateSubListGetter(ts, subTable));
+
         Arrays.asList(fields).forEach(f -> generateInnerEnums(ts, table, f));
 
         output(strategy.getIndent(), strategy.getDirectory(), strategy.interfacePackageName(tableName), ts.build());
@@ -163,6 +175,19 @@ class TypeInterfaceGenerator implements Generator {
     private void generateSetter(Builder ts, TableMeta table, FieldMeta f) {
         MethodSpec.Builder b = generateSetter(table, f);
         b.addModifiers(Modifier.ABSTRACT);
+        ts.addMethod(b.build());
+    }
+
+    private void generateSubListGetter(TypeSpec.Builder ts, TableMeta subTable) {
+        String subTableName = subTable.getName();
+
+        WildcardTypeName typeVariableName = WildcardTypeName.subtypeOf(strategy.interfaceClassName(subTableName));
+        MethodSpec.Builder b = MethodSpec.methodBuilder("get" + StringUtils.toCamelCase(subTableName) + "List")
+                .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
+                .returns(ParameterizedTypeName.get(ClassName.get(List.class), typeVariableName))
+                .addJavadoc("获取 `$L`列表", subTable.getNameDesc())
+                .addStatement("return null");
+
         ts.addMethod(b.build());
     }
 
@@ -388,6 +413,85 @@ class TypePojoGenerator implements Generator {
 
     public static TypePojoGenerator of(TypeGeneratorStrategy strategy) {
         return new TypePojoGenerator(strategy);
+    }
+}
+
+class TypePojoAllGenerator implements Generator {
+    private final TypeGeneratorStrategy strategy;
+
+    public TypePojoAllGenerator(TypeGeneratorStrategy strategy) {
+        this.strategy = strategy;
+    }
+
+    @Override
+    public void generate(TableMeta table) {
+        String tableName = table.getName();
+        List<TableMeta> subTables = strategy.subTables(tableName);
+        if(subTables.isEmpty()) {
+            return;
+        }
+
+        ClassName pojoCN = strategy.pojoClassName(tableName);
+        ClassName pojoAllCN = strategy.pojoAllClassName(tableName);
+        TypeSpec.Builder ts = TypeSpec.classBuilder(pojoAllCN.simpleName())
+                .addModifiers(Modifier.PUBLIC)
+                .superclass(pojoCN);
+
+        subTables.forEach(subTable -> {
+            String subTableName = subTable.getName();
+            String fieldName = StringUtils.toCamelCaseLC(subTableName) + "List";
+            FieldSpec spec = FieldSpec
+                    .builder(ParameterizedTypeName.get(ClassName.get(List.class), strategy.pojoClassName(subTableName)), fieldName, Modifier.PRIVATE)
+                    .addJavadoc(subTable.getNameDesc() + "列表")
+                    .build();
+            ts.addField(spec);
+        });
+
+        if(strategy.isGeneratePojoWithLombok(tableName)) {
+            ts.addAnnotation(lombok.Data.class)
+                    .addAnnotation(lombok.experimental.SuperBuilder.class)
+                    .addAnnotation(lombok.NoArgsConstructor.class)
+                    .addAnnotation(AnnotationSpec.builder(lombok.ToString.class).addMember("callSuper", "true").build())
+                    .addAnnotation(AnnotationSpec.builder(lombok.EqualsAndHashCode.class).addMember("callSuper", "true").build());
+        } else {
+            subTables.forEach(subTable -> {
+                generateGetter(ts, table, subTable);
+                generateSetter(ts, table, subTable);
+            });
+        }
+
+        output(strategy.getIndent(), strategy.getDirectory(), strategy.pojoPackageName(tableName), ts.build());
+
+    }
+
+    private void generateGetter(TypeSpec.Builder ts, TableMeta table, TableMeta subTable) {
+        String subTableName = subTable.getName();
+        String fieldName = StringUtils.toCamelCase(subTableName) + "List";
+        String nameLC = StringUtils.toCamelCaseLC(subTableName) + "List";
+        MethodSpec.Builder b = MethodSpec.methodBuilder("get" + fieldName)
+                .addModifiers(Modifier.PUBLIC)
+                .returns(subTableFieldType(strategy, subTableName))
+                .addAnnotation(Override.class)
+                .addStatement("return this.$L", nameLC);
+
+        ts.addMethod(b.build());
+    }
+
+    private void generateSetter(TypeSpec.Builder ts, TableMeta table, TableMeta subTable) {
+        String subTableName = subTable.getName();
+        String fieldName = StringUtils.toCamelCase(subTableName) + "List";
+        String nameLC = StringUtils.toCamelCaseLC(subTableName) + "List";
+        MethodSpec.Builder b = MethodSpec.methodBuilder("set" + fieldName)
+                .addModifiers(Modifier.PUBLIC)
+                .returns(void.class)
+                .addParameter(subTableFieldType(strategy, subTableName), nameLC)
+                .addStatement("this.$L = $L", nameLC, nameLC);
+
+        ts.addMethod(b.build());
+    }
+
+    public static TypePojoAllGenerator of(TypeGeneratorStrategy strategy) {
+        return new TypePojoAllGenerator(strategy);
     }
 }
 

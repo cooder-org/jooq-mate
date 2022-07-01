@@ -53,6 +53,7 @@ public class TypeGenerator implements Generator {
         TypeInterfaceGenerator.of(strategy).generate(table);
         TypeRecordGenerator.of(strategy).generate(table);
         TypePojoGenerator.of(strategy).generate(table);
+        TypePojoAllGenerator.of(strategy).generate(table);
         RepoGenerator.of(strategy).generate(table);
     }
 
@@ -83,6 +84,7 @@ public class TypeGenerator implements Generator {
                     .setGeneratedInterfaceSuperInterfaces(tc.getJooqmateInterfaceSupers())
                     .setGeneratedPojoSuperClass(tc.getJooqmatePojoSuperClass()));
         }
+        this.strategy.withConfig(conf);
     }
 
     private static class JooqTableMeta implements TableMeta {
@@ -137,7 +139,7 @@ public class TypeGenerator implements Generator {
         }
     }
 
-    private static class TableConfigMeta implements TableMeta {
+    static class TableConfigMeta implements TableMeta {
         private TableConfig tableConfig;
 
         public TableConfigMeta(TableConfig tc) {
@@ -169,9 +171,14 @@ public class TypeGenerator implements Generator {
         public boolean hasUniqKey() {
             return tableConfig.getUniqueKey() != null;
         }
+
+        @Override
+        public String getNameDesc() {
+            return tableConfig.getTableNameDesc();
+        }
     }
 
-    private static class FieldConfigMeta implements FieldMeta {
+    static class FieldConfigMeta implements FieldMeta {
         private FieldConfig fieldConfig;
 
         public FieldConfigMeta(FieldConfig fieldConfig) {

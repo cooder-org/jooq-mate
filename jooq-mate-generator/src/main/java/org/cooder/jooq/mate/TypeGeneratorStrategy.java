@@ -10,6 +10,7 @@ import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
+import org.cooder.jooq.mate.TypeGenerator.TableConfigMeta;
 import org.jooq.tools.StringUtils;
 
 import com.squareup.javapoet.ClassName;
@@ -62,8 +63,15 @@ public class TypeGeneratorStrategy extends GeneratorStrategy {
     private NameConverter pojoNameConverter;
     private NameConverter repoNameConverter;
 
+    private ConfigurationParser.Config conf;
+
     public TypeGeneratorStrategy withIndent(String indent) {
         this.indent = indent;
+        return this;
+    }
+
+    public TypeGeneratorStrategy withConfig(ConfigurationParser.Config conf) {
+        this.conf = conf;
         return this;
     }
 
@@ -297,6 +305,10 @@ public class TypeGeneratorStrategy extends GeneratorStrategy {
         return ClassName.get(pojoPackageName(tableName), pojoClazzName(tableName));
     }
 
+    public ClassName pojoAllClassName(String tableName) {
+        return ClassName.get(pojoPackageName(tableName), pojoClazzName(tableName) + "All");
+    }
+
     public ClassName repoClassName(String tableName) {
         return ClassName.get(repoPackageName(tableName), repoClazzName(tableName));
     }
@@ -375,5 +387,14 @@ public class TypeGeneratorStrategy extends GeneratorStrategy {
         public boolean isIgnoreField(String fieldName) {
             return ignoreFieldNames.contains(fieldName);
         }
+    }
+
+    public List<TableMeta> subTables(String tableName) {
+        List<TableMeta> metas = new ArrayList<>();
+        if(conf != null) {
+            conf.tables().stream().filter(t -> tableName.equals(t.getParentTableName())).collect(Collectors.toList())
+                    .forEach(t -> metas.add(new TableConfigMeta(t)));
+        }
+        return metas;
     }
 }
