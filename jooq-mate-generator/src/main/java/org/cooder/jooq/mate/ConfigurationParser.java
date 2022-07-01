@@ -280,6 +280,7 @@ public class ConfigurationParser {
         private String autoIncrement;
         private String defaultCharset;
         private int shardingCount;
+        private String parentTableName;
         private String jooqDaoClass;
         private String jooqPojoClass;
         private String jooqPojoImplements;
@@ -349,6 +350,12 @@ public class ConfigurationParser {
 
             @ExcelProperty(index = 6)
             private boolean autoIncrement;
+
+            @ExcelProperty(index = 7)
+            private String refKey;
+
+            @ExcelProperty(index = 8)
+            private boolean generateEnum = true;
 
             private boolean uniqKey;
 

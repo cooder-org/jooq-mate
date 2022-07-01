@@ -58,11 +58,15 @@ interface FieldMeta {
     default boolean isUniqKey() {
         return false;
     }
+
+    default boolean isGenerateEnum() {
+        return true;
+    }
 }
 
 public interface Generator {
-    String valueVar = "value";
-    String nameVar = "name";
+    String VALUE = "value";
+    String NAME = "name";
 
     void generate(TableMeta table);
 
@@ -88,7 +92,7 @@ public interface Generator {
 
     default void addSuppressWarnings(MethodSpec.Builder b) {
         b.addAnnotation(AnnotationSpec.builder(SuppressWarnings.class)
-                .addMember(valueVar, "{$S, $S}", "unchecked", "rawtypes")
+                .addMember(VALUE, "{$S, $S}", "unchecked", "rawtypes")
                 .build());
     }
 
@@ -182,7 +186,7 @@ class TypeInterfaceGenerator implements Generator {
 
     private void generateInnerEnums(Builder parent, TableMeta table, FieldMeta fm) {
         String enumString = fm.getEnums();
-        if(StringUtils.isEmpty(enumString)) {
+        if(StringUtils.isEmpty(enumString) || !fm.isGenerateEnum()) {
             return;
         }
 
@@ -198,20 +202,20 @@ class TypeInterfaceGenerator implements Generator {
             ts.addEnumConstant(ss[1], TypeSpec.anonymousClassBuilder("$L, $S", ss[0], ss[1]).build());
         }
 
-        ts.addField(FieldSpec.builder(int.class, valueVar, Modifier.PUBLIC, Modifier.FINAL).build());
-        ts.addField(FieldSpec.builder(String.class, nameVar, Modifier.PUBLIC, Modifier.FINAL).build());
+        ts.addField(FieldSpec.builder(int.class, VALUE, Modifier.PUBLIC, Modifier.FINAL).build());
+        ts.addField(FieldSpec.builder(String.class, NAME, Modifier.PUBLIC, Modifier.FINAL).build());
         ts.addMethod(MethodSpec.constructorBuilder()
                 .addModifiers(Modifier.PRIVATE)
-                .addParameter(int.class, valueVar)
-                .addParameter(String.class, nameVar)
-                .addStatement("this.$L = $L", valueVar, valueVar)
-                .addStatement("this.$L = $L", nameVar, nameVar)
+                .addParameter(int.class, VALUE)
+                .addParameter(String.class, NAME)
+                .addStatement("this.$L = $L", VALUE, VALUE)
+                .addStatement("this.$L = $L", NAME, NAME)
                 .build());
 
         ts.addMethod(MethodSpec.methodBuilder("from")
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
                 .returns(enumClassName)
-                .addParameter(int.class, valueVar)
+                .addParameter(int.class, VALUE)
                 .addCode(CodeBlock.builder()
                         .beginControlFlow("for ($T e : values())", enumClassName)
                         .addStatement("if ( e.value == value) return e")

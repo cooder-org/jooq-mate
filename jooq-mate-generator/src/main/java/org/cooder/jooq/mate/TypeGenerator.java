@@ -235,5 +235,10 @@ public class TypeGenerator implements Generator {
         public boolean isUniqKey() {
             return fieldConfig.isUniqKey();
         }
+
+        @Override
+        public boolean isGenerateEnum() {
+            return fieldConfig.isGenerateEnum();
+        }
     }
 }
