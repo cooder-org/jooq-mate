@@ -65,9 +65,12 @@ public class JooqGeneratorMateTest {
         checkFileExistAndRemove(directory + P(packageName + ".type.house"), "HouseLayout.java");
         checkFileExistAndRemove(directory + P(packageName + ".type.records.house"), "HouseLayoutRecord.java");
         checkFileExistAndRemove(directory + P(packageName + ".type.pojos.house"), "HouseLayoutEntity.java");
+        checkFileExistAndRemove(directory + P(packageName + ".repo.house"), "HouseLayoutRepo.java");
         checkFileExistAndRemove(directory + P(packageName + ".type.house"), "HouseSpace.java");
         checkFileExistAndRemove(directory + P(packageName + ".type.records.house"), "HouseSpaceRecord.java");
         checkFileExistAndRemove(directory + P(packageName + ".type.pojos.house"), "HouseSpaceEntity.java");
+        checkFileExistAndRemove(directory + P(packageName + ".repo.house"), "HouseSpaceRepo.java");
+
     }
 
     private void checkFileExistAndRemove(String dir, String name) {

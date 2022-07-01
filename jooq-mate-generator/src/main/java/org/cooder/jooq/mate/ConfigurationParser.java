@@ -164,6 +164,7 @@ public class ConfigurationParser {
 
         public void reset() {
             tableConfig = new TableConfig();
+            espectFiled = false;
         }
 
         @Override
