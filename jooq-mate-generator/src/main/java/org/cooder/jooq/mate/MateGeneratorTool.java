@@ -1,5 +1,6 @@
 package org.cooder.jooq.mate;
 
+import java.io.File;
 import java.util.List;
 import java.util.concurrent.Callable;
 
@@ -22,6 +23,9 @@ public class MateGeneratorTool implements Callable<Integer> {
     @Option(names = { "-jc", "--jooqCodegen" })
     private boolean jooqCodegen = false;
 
+    @Option(names = { "-cpf", "--createProjectFrom" }, paramLabel = "FILE", description = "path of the project template dir")
+    private File projectTemplate;
+
     public static void main(String[] args) {
         int exitCode = new CommandLine(new MateGeneratorTool()).execute(args);
         System.exit(exitCode);
@@ -35,7 +39,15 @@ public class MateGeneratorTool implements Callable<Integer> {
     }
 
     private void generate(String file) throws Exception {
+        if(projectTemplate != null && !projectTemplate.exists()) {
+            System.err.println("unexist: " + projectTemplate.getAbsolutePath());
+            return;
+        }
+
         Config conf = new ConfigurationParser().parse(file);
+        conf.projectTemplate(projectTemplate);
+
+        new ProjectGenerator().generate(conf);
 
         List<String> sqls = new SqlGenerator().generate(conf);
         for (String sql : sqls) {
@@ -46,6 +58,8 @@ public class MateGeneratorTool implements Callable<Integer> {
         if(createTable) {
             jooq.executeDDL(conf.jooqConfig(), sqls);
         }
+
+
 
         if(jooqCodegen) {
             jooq.generate();

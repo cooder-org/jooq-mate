@@ -40,41 +40,46 @@ public class SqlGenerator {
         List<String> sqls = new ArrayList<>();
         String tableName = shardingIndex == 0 ? tc.getTableName() : String.format("%s_%02d", tc.getTableName(), shardingIndex);
 
-        sqls.add(String.format("DROP TABLE IF EXISTS `%s`;\n", tableName));
+        sqls.add(String.format("DROP TABLE IF EXISTS `%s`;", tableName));
 
         StringBuilder sb = new StringBuilder();
-        sb.append(String.format("CREATE TABLE `%s` (\n", tableName));
 
-        tc.getFields().forEach(fc -> sb.append(String.format(
-                "  `%s` %s NOT NULL %s %s COMMENT '%s',\n",
-                fc.getFieldName(),
-                fc.getDataType(),
-                StringUtils.isEmpty(fc.getDefaultValue()) ? "" : "DEFAULT " + fc.getDefaultValue(),
-                fc.isAutoIncrement() ? "AUTO_INCREMENT" : "",
-                fc.getComment())));
+        if(shardingIndex == 0) {
+            sb.append(String.format("CREATE TABLE `%s` (\n", tableName));
 
-        if(!StringUtils.isEmpty(tc.getPrimaryKey())) {
-            sb.append(String.format("  PRIMARY KEY (`%s`),\n", tc.getPrimaryKey()));
-        }
+            tc.getFields().forEach(fc -> sb.append(String.format(
+                    "  `%s` %s NOT NULL %s %s COMMENT '%s',\n",
+                    fc.getFieldName(),
+                    fc.getDataType(),
+                    StringUtils.isEmpty(fc.getDefaultValue()) ? "" : "DEFAULT " + fc.getDefaultValue(),
+                    fc.isAutoIncrement() ? "AUTO_INCREMENT" : "",
+                    fc.getComment())));
 
-        if(Objects.nonNull(tc.getUniqueKey())) {
-            UniqKey uk = tc.getUniqueKey();
-            String[] vs = uk.getValue().split(",");
-            String value = Arrays.asList(vs).stream().map(v -> String.format("`%s`", v.trim())).collect(Collectors.joining(","));
-            sb.append(String.format("  UNIQUE KEY %s (%s),", uk.getName(), value));
-        }
+            if(!StringUtils.isEmpty(tc.getPrimaryKey())) {
+                sb.append(String.format("  PRIMARY KEY (`%s`),\n", tc.getPrimaryKey()));
+            }
 
-        if(sb.charAt(sb.length() - 1) == ',') {
-            sb.deleteCharAt(sb.length() - 1);
-        }
+            if(Objects.nonNull(tc.getUniqueKey())) {
+                UniqKey uk = tc.getUniqueKey();
+                String[] vs = uk.getValue().split(",");
+                String value = Arrays.asList(vs).stream().map(v -> String.format("`%s`", v.trim())).collect(Collectors.joining(","));
+                sb.append(String.format("  UNIQUE KEY %s (%s),", uk.getName(), value));
+            }
 
-        sb.append("\n");
-        if(!StringUtils.isEmpty(tc.getAutoIncrement())) {
-            sb.append(String.format(") ENGINE=%s AUTO_INCREMENT=%s DEFAULT CHARSET=%s COMMENT=\"%s\";\n",
-                    tc.getEngine(), tc.getAutoIncrement(), tc.getDefaultCharset(), tc.getTableDesc()));
+            if(sb.charAt(sb.length() - 1) == ',') {
+                sb.deleteCharAt(sb.length() - 1);
+            }
+
+            sb.append("\n");
+            if(!StringUtils.isEmpty(tc.getAutoIncrement())) {
+                sb.append(String.format(") ENGINE=%s AUTO_INCREMENT=%s DEFAULT CHARSET=%s COMMENT=\"%s\";\n",
+                        tc.getEngine(), tc.getAutoIncrement(), tc.getDefaultCharset(), tc.getTableDesc()));
+            } else {
+                sb.append(String.format(") ENGINE=%s DEFAULT CHARSET=%s COMMENT=\"%s\";\n",
+                        tc.getEngine(), tc.getDefaultCharset(), tc.getTableDesc()));
+            }
         } else {
-            sb.append(String.format(") ENGINE=%s DEFAULT CHARSET=%s COMMENT=\"%s\";\n",
-                    tc.getEngine(), tc.getDefaultCharset(), tc.getTableDesc()));
+            sb.append(String.format("CREATE TABLE `%s` like `%s`;\n", tableName, tc.getTableName()));
         }
 
         sqls.add(sb.toString());

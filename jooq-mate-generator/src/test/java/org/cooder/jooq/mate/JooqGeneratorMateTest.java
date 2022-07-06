@@ -89,7 +89,7 @@ public class JooqGeneratorMateTest {
     @Test
     public final void testGenerateByConfig() {
         String directory = "./target/generated-sources/";
-        String packageName = "org.cooder.jooq";
+        String packageName = "org.cooder.jooq.mate.demo";
 
         String resourceName = "jooq-mate-config.xlsx";
 

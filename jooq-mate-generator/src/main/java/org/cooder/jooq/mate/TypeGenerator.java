@@ -64,7 +64,9 @@ public class TypeGenerator implements Generator {
 
     private void withConfig(final Config conf) {
         JooqMateConfig mc = conf.mateConfig;
-        this.strategy.withDirectory(mc.getDirectory())
+        this.strategy.withDirectory(conf.jooqMateDirectory())
+                .withRepoDirectory(conf.repoDirectory())
+                .withServiceDirectory(conf.serviceDirectory())
                 .withPackageName(mc.getPackageName())
                 .ignoreFieldNames(mc.getIgnoreFieldNames())
                 .includeTableNames(mc.getIncludeTableNames())

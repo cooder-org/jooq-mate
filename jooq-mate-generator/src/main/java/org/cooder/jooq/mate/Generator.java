@@ -13,6 +13,7 @@ import javax.lang.model.element.Modifier;
 import org.cooder.jooq.mate.types.AbstractRecord;
 import org.jooq.DSLContext;
 import org.jooq.Field;
+import org.jooq.SelectConditionStep;
 import org.jooq.Table;
 import org.jooq.impl.DSL;
 import org.jooq.tools.StringUtils;
@@ -254,8 +255,7 @@ class TypeInterfaceGenerator implements Generator {
         parent.addType(ts.build());
     }
 
-    private ClassName getInnerEnumClassName(String tableName, String fieldName) {
-        String name = StringUtils.toCamelCase(fieldName);
+    private ClassName getInnerEnumClassName(String tableName, String name) {
         return ClassName.get(strategy.interfacePackageName(tableName), strategy.interfaceClazzName(tableName), name);
     }
 
@@ -538,7 +538,7 @@ class RepoGenerator implements Generator {
         b.returns(void.class);
 
         b.addCode(CodeBlock.builder()
-                .addStatement("rec.save()")
+                .addStatement("rec.insert()")
                 .build());
 
         ts.addMethod(b.build());
@@ -564,7 +564,7 @@ class RepoGenerator implements Generator {
         b.returns(pojoCN);
 
         b.addCode(CodeBlock.builder()
-                .addStatement("SelectConditionStep sql = db.selectFrom(rec.getTable()).where($T.noCondition())", DSL.class)
+                .addStatement("$T sql = db.selectFrom(rec.getTable()).where($T.noCondition())", SelectConditionStep.class, DSL.class)
                 .addStatement("$T[] fields = rec.fields()", Field.class)
                 .beginControlFlow("for ($T field : fields)", Field.class)
                 .beginControlFlow("if (field.changed(rec))")
@@ -596,7 +596,7 @@ class RepoGenerator implements Generator {
         ClassName jooqRecordCN = strategy.jooqRecordClassName(tableName);
         b.addStatement("$T rec  = new $T()", jooqRecordCN, jooqRecordCN);
         b.addStatement("$T table = rec.getTable()", Table.class)
-                .addStatement("SelectConditionStep sql = db.selectFrom(table).where($T.noCondition())", DSL.class);
+                .addStatement("$T sql = db.selectFrom(table).where($T.noCondition())", SelectConditionStep.class, DSL.class);
         for (FieldMeta f : table.fields()) {
             if(f.isUniqKey()) {
                 String nameLC = StringUtils.toCamelCaseLC(f.getName());
@@ -617,7 +617,7 @@ class RepoGenerator implements Generator {
         b.returns(ParameterizedTypeName.get(ClassName.get(List.class), pojoCN));
 
         b.addCode(CodeBlock.builder()
-                .addStatement("SelectConditionStep sql = db.selectFrom(rec.getTable()).where($T.noCondition())", DSL.class)
+                .addStatement("$T sql = db.selectFrom(rec.getTable()).where($T.noCondition())", SelectConditionStep.class, DSL.class)
                 .addStatement("$T[] fields = rec.fields()", Field.class)
                 .beginControlFlow("for ($T field : fields)", Field.class)
                 .beginControlFlow("if (field.changed(rec))")

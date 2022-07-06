@@ -1,7 +1,10 @@
 package org.cooder.jooq.mate;
 
 import java.beans.PropertyDescriptor;
+import java.io.File;
 import java.lang.reflect.Field;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -204,6 +207,11 @@ public class ConfigurationParser {
         JooqConfig jooqConfig = new JooqConfig();
         JooqMateConfig mateConfig = new JooqMateConfig();
         List<TableConfig> tables = new ArrayList<>();
+        @Setter
+        private File projectTemplate;
+
+        @Setter
+        private Path directory;
 
         private MutableValueGraph<String, String> relationGraph = ValueGraphBuilder.directed()
                 .allowsSelfLoops(false)
@@ -212,7 +220,7 @@ public class ConfigurationParser {
         public Config addTable(TableConfig tc) {
             this.tables.add(tc);
             relationGraph.addNode(tc.getTableName());
-            if (!StringUtils.isEmpty(tc.getParentTableName())) {
+            if(!StringUtils.isEmpty(tc.getParentTableName())) {
                 relationGraph.putEdgeValue(tc.getParentTableName(), tc.getTableName(), "");
             }
             return this;
@@ -229,6 +237,36 @@ public class ConfigurationParser {
         public boolean isRootTable(String tableName) {
             return CollectionUtils.isEmpty(relationGraph.predecessors(tableName));
         }
+
+        public String jooqDirectory() {
+            return getDirectory(jooqConfig.getDirectory());
+        }
+
+        public String jooqMateDirectory() {
+            return getDirectory(mateConfig.getDirectory());
+        }
+
+        public String repoDirectory() {
+            return getDirectory(MateUtils.firstNotEmpty(mateConfig.getRepoDirectory(), mateConfig.getDirectory()));
+        }
+
+        public String serviceDirectory() {
+            return getDirectory(MateUtils.firstNotEmpty(mateConfig.getServiceDirectory(), mateConfig.getDirectory()));
+        }
+
+        public String apiDirectory() {
+            return getDirectory(MateUtils.firstNotEmpty(mateConfig.getApiDirectory(), mateConfig.getDirectory()));
+        }
+
+        private String getDirectory(String path) {
+            Path p = Paths.get(path);
+            if(!p.isAbsolute() && directory != null) {
+                return Paths.get(directory.toString(), p.toString()).toString();
+            } else {
+                return path;
+            }
+        }
+
     }
 
     @Getter
@@ -262,6 +300,9 @@ public class ConfigurationParser {
     public static class JooqMateConfig {
         private int indent;
         private String directory;
+        private String repoDirectory;
+        private String serviceDirectory;
+        private String apiDirectory;
         private String packageName;
         private String groupId;
         private String artifactId;

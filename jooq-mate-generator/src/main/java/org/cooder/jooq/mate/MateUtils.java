@@ -24,4 +24,13 @@ public class MateUtils {
         }
         return sb.toString();
     }
+
+    public static String firstNotEmpty(String... str) {
+        for (String s : str) {
+            if(!StringUtils.isEmpty(s)) {
+                return s;
+            }
+        }
+        return null;
+    }
 }

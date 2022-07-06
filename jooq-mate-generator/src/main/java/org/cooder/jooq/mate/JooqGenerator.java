@@ -51,7 +51,7 @@ public class JooqGenerator {
                                 .withPojos(jc.isGeneratePojos()))
                         .withTarget(new Target()
                                 .withPackageName(jc.getPackageName())
-                                .withDirectory(jc.getDirectory()))
+                                .withDirectory(conf.jooqDirectory()))
                         .withStrategy(new Strategy()
                                 .withMatchers(new Matchers()
                                         .withTables(tableStrategies))));

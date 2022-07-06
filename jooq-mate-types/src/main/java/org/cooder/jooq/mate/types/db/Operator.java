@@ -5,10 +5,6 @@ package org.cooder.jooq.mate.types.db;
  */
 public interface Operator extends Timed {
     
-    Long getId();
-    
-    void setId(Long id);
-    
     String getCuName();
 
     void setCuName(String cuName);

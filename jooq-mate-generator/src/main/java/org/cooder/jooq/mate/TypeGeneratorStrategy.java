@@ -86,6 +86,16 @@ public class TypeGeneratorStrategy extends GeneratorStrategy {
         return this;
     }
 
+    public TypeGeneratorStrategy withRepoDirectory(String directory) {
+        repoStrategy.setDirectory(directory);
+        return this;
+    }
+
+    public TypeGeneratorStrategy withServiceDirectory(String directory) {
+        serviceStrategy.setDirectory(directory);
+        return this;
+    }
+
     public TypeGeneratorStrategy withPackageName(String packageName) {
         this.packageName = packageName;
         return this;
