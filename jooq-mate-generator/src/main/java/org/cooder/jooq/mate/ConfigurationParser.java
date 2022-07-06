@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.commons.collections4.CollectionUtils;
 import org.cooder.jooq.mate.ConfigurationParser.TableConfig.FieldConfig;
 import org.cooder.jooq.mate.ConfigurationParser.TableConfig.UniqKey;
 import org.cooder.jooq.mate.utils.TypeUtils;
@@ -24,6 +25,8 @@ import com.alibaba.excel.metadata.data.ReadCellData;
 import com.alibaba.excel.read.metadata.ReadSheet;
 import com.alibaba.excel.read.metadata.holder.ReadRowHolder;
 import com.alibaba.excel.util.StringUtils;
+import com.google.common.graph.MutableValueGraph;
+import com.google.common.graph.ValueGraphBuilder;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -202,8 +205,16 @@ public class ConfigurationParser {
         JooqMateConfig mateConfig = new JooqMateConfig();
         List<TableConfig> tables = new ArrayList<>();
 
+        private MutableValueGraph<String, String> relationGraph = ValueGraphBuilder.directed()
+                .allowsSelfLoops(false)
+                .build();
+
         public Config addTable(TableConfig tc) {
             this.tables.add(tc);
+            relationGraph.addNode(tc.getTableName());
+            if (!StringUtils.isEmpty(tc.getParentTableName())) {
+                relationGraph.putEdgeValue(tc.getParentTableName(), tc.getTableName(), "");
+            }
             return this;
         }
 
@@ -213,6 +224,10 @@ public class ConfigurationParser {
 
         public TableConfig getTableConfig(String tableName) {
             return tables.stream().filter(t -> t.tableName.equals(tableName)).findFirst().get();
+        }
+
+        public boolean isRootTable(String tableName) {
+            return CollectionUtils.isEmpty(relationGraph.predecessors(tableName));
         }
     }
 
@@ -248,6 +263,9 @@ public class ConfigurationParser {
         private int indent;
         private String directory;
         private String packageName;
+        private String groupId;
+        private String artifactId;
+        private String projectDescription;
         private String[] ignoreFieldNames = new String[0];
         private String[] includeTableNames = new String[0];
         private String[] excludeTableNames = new String[0];
@@ -284,7 +302,7 @@ public class ConfigurationParser {
         private String jooqDaoClass;
         private String jooqPojoClass;
         private String jooqPojoImplements;
-        private String jooqmateSubpackage;
+        private String jooqmateSubpackage = "";
         private String[] jooqmateIgnoreFieldNames = new String[0];
         private String jooqmateInterfaceName;
         private String[] jooqmateInterfaceSupers = new String[0];

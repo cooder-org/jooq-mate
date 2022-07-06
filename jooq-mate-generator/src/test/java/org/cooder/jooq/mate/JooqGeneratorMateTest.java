@@ -66,10 +66,13 @@ public class JooqGeneratorMateTest {
         checkFileExistAndRemove(directory + P(packageName + ".type.records.house"), "HouseLayoutRecord.java");
         checkFileExistAndRemove(directory + P(packageName + ".type.pojos.house"), "HouseLayoutEntity.java");
         checkFileExistAndRemove(directory + P(packageName + ".repo.house"), "HouseLayoutRepo.java");
+        checkFileExistAndRemove(directory + P(packageName + ".service.house"), "HouseLayoutService.java");
+
         checkFileExistAndRemove(directory + P(packageName + ".type.house"), "HouseSpace.java");
         checkFileExistAndRemove(directory + P(packageName + ".type.records.house"), "HouseSpaceRecord.java");
         checkFileExistAndRemove(directory + P(packageName + ".type.pojos.house"), "HouseSpaceEntity.java");
         checkFileExistAndRemove(directory + P(packageName + ".repo.house"), "HouseSpaceRepo.java");
+        checkFileExistAndRemove(directory + P(packageName + ".service.house"), "HouseSpaceService.java");
 
     }
 
@@ -100,6 +103,12 @@ public class JooqGeneratorMateTest {
         checkFileExistAndRemove(directory + P(packageName + ".type.house"), "HouseLayoutTest.java");
         checkFileExistAndRemove(directory + P(packageName + ".type.records.house"), "HouseLayoutTestRecord.java");
         checkFileExistAndRemove(directory + P(packageName + ".type.pojos.house"), "HouseLayoutTestEntity.java");
+        checkFileExistAndRemove(directory + P(packageName + ".type.pojos.house"), "HouseLayoutTestEntityAll.java");
         checkFileExistAndRemove(directory + P(packageName + ".repo.house"), "HouseLayoutTestRepo.java");
+        checkFileExistAndRemove(directory + P(packageName + ".service.house"), "HouseLayoutTestService.java");
+
+        checkFileExistAndRemove(directory + P(packageName + ".type.house"), "SpaceTest.java");
+        checkFileExistAndRemove(directory + P(packageName + ".type.records.house"), "SpaceTestRecord.java");
+        checkFileExistAndRemove(directory + P(packageName + ".type.pojos.house"), "SpaceTestEntity.java");
     }
 }

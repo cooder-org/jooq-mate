@@ -38,6 +38,9 @@ public class MateGeneratorTool implements Callable<Integer> {
         Config conf = new ConfigurationParser().parse(file);
 
         List<String> sqls = new SqlGenerator().generate(conf);
+        for (String sql : sqls) {
+            System.out.println(sql);
+        }
 
         JooqGenerator jooq = new JooqGenerator(conf);
         if(createTable) {

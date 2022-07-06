@@ -37,6 +37,7 @@ public class TypeGeneratorStrategy extends GeneratorStrategy {
     private Set<String> excludeTableNames = new HashSet<>();
     private Map<String, TableStrategy> tableStrategies = new HashMap<>();
     private RepoGeneratorStrategy repoStrategy = new RepoGeneratorStrategy();
+    private ServiceGeneratorStrategy serviceStrategy = new ServiceGeneratorStrategy();
 
     @Setter
     @Accessors(fluent = true)
@@ -289,6 +290,10 @@ public class TypeGeneratorStrategy extends GeneratorStrategy {
         return convertRepoName(tableName);
     }
 
+    public String serviceClazzName(String tableName) {
+        return interfaceClazzName(tableName) + "Service";
+    }
+
     public ClassName interfaceClassName(String tableName) {
         return ClassName.get(interfacePackageName(tableName), interfaceClazzName(tableName));
     }
@@ -313,12 +318,20 @@ public class TypeGeneratorStrategy extends GeneratorStrategy {
         return ClassName.get(repoPackageName(tableName), repoClazzName(tableName));
     }
 
+    public ClassName serviceClassName(String tableName) {
+        return ClassName.get(servicePackageName(tableName), serviceClazzName(tableName));
+    }
+
     public boolean isGenerateRepo(String tableName) {
         return generateRepo;
     }
 
     public String getRepoDirectory() {
         return repoStrategy.getDirectory();
+    }
+
+    public String getServiceDirectory() {
+        return serviceStrategy.getDirectory();
     }
 
     private TypeName typeNameFrom(ClassName itc, String name) {
@@ -397,4 +410,14 @@ public class TypeGeneratorStrategy extends GeneratorStrategy {
         }
         return metas;
     }
+
+    public boolean isRootTable(TableMeta table) {
+        if(conf != null) {
+            return conf.isRootTable(table.getName());
+        }
+
+        return true;
+    }
+
+
 }

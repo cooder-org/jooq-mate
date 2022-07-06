@@ -55,6 +55,7 @@ public class TypeGenerator implements Generator {
         TypePojoGenerator.of(strategy).generate(table);
         TypePojoAllGenerator.of(strategy).generate(table);
         RepoGenerator.of(strategy).generate(table);
+        ServiceGenerator.of(strategy).generate(table);
     }
 
     private boolean ignoreTable(TableMeta table) {

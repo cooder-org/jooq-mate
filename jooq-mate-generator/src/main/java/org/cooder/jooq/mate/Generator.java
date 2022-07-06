@@ -2,6 +2,7 @@ package org.cooder.jooq.mate;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -16,6 +17,7 @@ import org.jooq.Table;
 import org.jooq.impl.DSL;
 import org.jooq.tools.StringUtils;
 import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Service;
 
 import com.squareup.javapoet.AnnotationSpec;
 import com.squareup.javapoet.ClassName;
@@ -506,7 +508,7 @@ class RepoGenerator implements Generator {
     @Override
     public void generate(TableMeta table) {
         String tableName = table.getName();
-        if(!strategy.isGenerateRepo(tableName)) {
+        if(!strategy.isRootTable(table) || !strategy.isGenerateRepo(tableName)) {
             return;
         }
 
@@ -644,5 +646,136 @@ class RepoGenerator implements Generator {
 
     public static RepoGenerator of(TypeGeneratorStrategy strategy) {
         return new RepoGenerator(strategy);
+    }
+}
+
+class ServiceGenerator implements Generator {
+    private final TypeGeneratorStrategy strategy;
+
+    public ServiceGenerator(TypeGeneratorStrategy strategy) {
+        this.strategy = strategy;
+    }
+
+    @Override
+    public void generate(TableMeta table) {
+        if(!strategy.isRootTable(table)) {
+            return;
+        }
+
+        String tableName = table.getName();
+        ClassName serviceCN = strategy.serviceClassName(tableName);
+        TypeSpec.Builder ts = TypeSpec.classBuilder(serviceCN.simpleName())
+                .addModifiers(Modifier.PUBLIC)
+                .addAnnotation(Service.class);
+
+        String repoClazzNameLC = StringUtils.toLC(strategy.repoClazzName(tableName));
+
+        ts.addField(FieldSpec.builder(strategy.repoClassName(tableName), repoClazzNameLC, Modifier.PRIVATE)
+                .addAnnotation(Resource.class)
+                .build());
+
+        generateCreater(ts, table);
+        generateUpdater(ts, table);
+        if(table.hasUniqKey()) {
+            generateFlatGetter(ts, table);
+        } else {
+            generateGetter(ts, table);
+        }
+        generateLister(ts, table);
+
+        output(strategy.getIndent(), strategy.getServiceDirectory(), strategy.servicePackageName(tableName), ts.build());
+
+    }
+
+    private void generateCreater(TypeSpec.Builder ts, TableMeta table) {
+        String repoClazzNameLC = StringUtils.toLC(strategy.repoClazzName(table.getName()));
+        MethodSpec.Builder b = generateMethod(table, "create");
+        b.returns(void.class);
+
+        b.addCode(CodeBlock.builder()
+                .addStatement("$L.$L(entity)", repoClazzNameLC, b.build().name)
+                .build());
+
+        ts.addMethod(b.build());
+    }
+
+    private void generateUpdater(TypeSpec.Builder ts, TableMeta table) {
+        String repoClazzNameLC = StringUtils.toLC(strategy.repoClazzName(table.getName()));
+        MethodSpec.Builder b = generateMethod(table, "update");
+        b.returns(void.class);
+
+        b.addCode(CodeBlock.builder()
+                .addStatement("$L.$L(entity)", repoClazzNameLC, b.build().name)
+                .build());
+
+        ts.addMethod(b.build());
+    }
+
+    private void generateGetter(TypeSpec.Builder ts, TableMeta table) {
+        String repoClazzNameLC = StringUtils.toLC(strategy.repoClazzName(table.getName()));
+        String tableName = table.getName();
+        ClassName pojoCN = strategy.pojoClassName(tableName);
+
+        MethodSpec.Builder b = generateMethod(table, "get");
+        b.returns(pojoCN);
+
+        b.addCode(CodeBlock.builder()
+                .addStatement("return $L.$L(entity)", repoClazzNameLC, b.build().name)
+                .build());
+        ts.addMethod(b.build());
+    }
+
+    private void generateFlatGetter(TypeSpec.Builder ts, TableMeta table) {
+        String repoClazzNameLC = StringUtils.toLC(strategy.repoClazzName(table.getName()));
+
+        String tableName = table.getName();
+        ClassName intrCN = strategy.interfaceClassName(tableName);
+        ClassName pojoCN = strategy.pojoClassName(tableName);
+
+        MethodSpec.Builder b = MethodSpec.methodBuilder("get" + intrCN.simpleName())
+                .addModifiers(Modifier.PUBLIC);
+
+        List<String> paramrers = new ArrayList<>();
+        for (FieldMeta f : table.fields()) {
+            if(f.isUniqKey()) {
+                b.addParameter(f.getType(), StringUtils.toCamelCaseLC(f.getName()));
+                paramrers.add(StringUtils.toCamelCaseLC(f.getName()));
+            }
+        }
+        b.returns(pojoCN);
+
+        b.addCode(CodeBlock.builder()
+                .addStatement("return $L.$L($L)", repoClazzNameLC, b.build().name, StringUtils.join(paramrers.toArray(new String[0]), ", "))
+                .build());
+
+        ts.addMethod(b.build());
+    }
+
+    private void generateLister(TypeSpec.Builder ts, TableMeta table) {
+        String repoClazzNameLC = StringUtils.toLC(strategy.repoClazzName(table.getName()));
+        String tableName = table.getName();
+        ClassName pojoCN = strategy.pojoClassName(tableName);
+
+        MethodSpec.Builder b = generateMethod(table, "list");
+        b.returns(ParameterizedTypeName.get(ClassName.get(List.class), pojoCN));
+        b.addCode(CodeBlock.builder()
+                .addStatement("return $L.$L(entity)", repoClazzNameLC, b.build().name)
+                .build());
+
+        ts.addMethod(b.build());
+    }
+
+    private MethodSpec.Builder generateMethod(TableMeta table, String type) {
+        String tableName = table.getName();
+        ClassName intrCN = strategy.interfaceClassName(tableName);
+        ClassName pojoCN = strategy.pojoClassName(tableName);
+        MethodSpec.Builder b = MethodSpec.methodBuilder(type + intrCN.simpleName())
+                .addModifiers(Modifier.PUBLIC)
+                .addParameter(pojoCN, "entity");
+        return b;
+    }
+
+    public static ServiceGenerator of(TypeGeneratorStrategy strategy) {
+        return new ServiceGenerator(strategy);
     }
 }

@@ -7,9 +7,11 @@ import lombok.Setter;
 @Setter
 public class GeneratorStrategy {
     protected String directory = "./target/generated-sources/";
-
-
 }
 
 class RepoGeneratorStrategy extends GeneratorStrategy {
+}
+
+class ServiceGeneratorStrategy extends GeneratorStrategy {
+
 }
