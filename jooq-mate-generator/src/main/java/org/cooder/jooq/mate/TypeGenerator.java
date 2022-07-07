@@ -56,6 +56,7 @@ public class TypeGenerator implements Generator {
         TypePojoAllGenerator.of(strategy).generate(table);
         RepoGenerator.of(strategy).generate(table);
         ServiceGenerator.of(strategy).generate(table);
+        ApiGenerator.of(strategy).generate(table);
     }
 
     private boolean ignoreTable(TableMeta table) {
@@ -67,6 +68,7 @@ public class TypeGenerator implements Generator {
         this.strategy.withDirectory(conf.jooqMateDirectory())
                 .withRepoDirectory(conf.repoDirectory())
                 .withServiceDirectory(conf.serviceDirectory())
+                .withApiDirectory(conf.apiDirectory())
                 .withPackageName(mc.getPackageName())
                 .ignoreFieldNames(mc.getIgnoreFieldNames())
                 .includeTableNames(mc.getIncludeTableNames())

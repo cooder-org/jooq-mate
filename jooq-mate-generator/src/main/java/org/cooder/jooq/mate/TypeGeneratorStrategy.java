@@ -38,6 +38,7 @@ public class TypeGeneratorStrategy extends GeneratorStrategy {
     private Map<String, TableStrategy> tableStrategies = new HashMap<>();
     private RepoGeneratorStrategy repoStrategy = new RepoGeneratorStrategy();
     private ServiceGeneratorStrategy serviceStrategy = new ServiceGeneratorStrategy();
+    private ApiGeneratorStrategy apiStrategy = new ApiGeneratorStrategy();
 
     @Setter
     @Accessors(fluent = true)
@@ -93,6 +94,11 @@ public class TypeGeneratorStrategy extends GeneratorStrategy {
 
     public TypeGeneratorStrategy withServiceDirectory(String directory) {
         serviceStrategy.setDirectory(directory);
+        return this;
+    }
+
+    public TypeGeneratorStrategy withApiDirectory(String directory) {
+        apiStrategy.setDirectory(directory);
         return this;
     }
 
@@ -304,6 +310,10 @@ public class TypeGeneratorStrategy extends GeneratorStrategy {
         return interfaceClazzName(tableName) + "Service";
     }
 
+    public String controllerClazzName(String tableName) {
+        return interfaceClazzName(tableName) + "Controller";
+    }
+
     public ClassName interfaceClassName(String tableName) {
         return ClassName.get(interfacePackageName(tableName), interfaceClazzName(tableName));
     }
@@ -332,6 +342,10 @@ public class TypeGeneratorStrategy extends GeneratorStrategy {
         return ClassName.get(servicePackageName(tableName), serviceClazzName(tableName));
     }
 
+    public ClassName controllerClassName(String tableName) {
+        return ClassName.get(apiPackageName(tableName), controllerClazzName(tableName));
+    }
+
     public boolean isGenerateRepo(String tableName) {
         return generateRepo;
     }
@@ -342,6 +356,10 @@ public class TypeGeneratorStrategy extends GeneratorStrategy {
 
     public String getServiceDirectory() {
         return serviceStrategy.getDirectory();
+    }
+
+    public String getApiDirectory() {
+        return apiStrategy.getDirectory();
     }
 
     private TypeName typeNameFrom(ClassName itc, String name) {

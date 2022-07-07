@@ -15,3 +15,7 @@ class RepoGeneratorStrategy extends GeneratorStrategy {
 class ServiceGeneratorStrategy extends GeneratorStrategy {
 
 }
+
+class ApiGeneratorStrategy extends GeneratorStrategy {
+
+}

@@ -17,8 +17,13 @@ import org.jooq.SelectConditionStep;
 import org.jooq.Table;
 import org.jooq.impl.DSL;
 import org.jooq.tools.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import com.squareup.javapoet.AnnotationSpec;
 import com.squareup.javapoet.ClassName;
@@ -26,6 +31,7 @@ import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
+import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
@@ -641,6 +647,7 @@ class RepoGenerator implements Generator {
         ClassName jooqRecordCN = strategy.jooqRecordClassName(tableName);
         b.addStatement("$T rec  = new $T()", jooqRecordCN, jooqRecordCN);
         b.addStatement("rec.from(entity)");
+        b.addStatement("rec.attach(db.configuration())");
         return b;
     }
 
@@ -777,5 +784,147 @@ class ServiceGenerator implements Generator {
 
     public static ServiceGenerator of(TypeGeneratorStrategy strategy) {
         return new ServiceGenerator(strategy);
+    }
+}
+
+class ApiGenerator implements Generator {
+    private TypeGeneratorStrategy strategy;
+
+    public ApiGenerator(TypeGeneratorStrategy strategy) {
+        this.strategy = strategy;
+    }
+
+    public static ApiGenerator of(TypeGeneratorStrategy strategy) {
+        return new ApiGenerator(strategy);
+    }
+
+    @Override
+    public void generate(TableMeta table) {
+        generateRestController(table);
+    }
+
+    private void generateRestController(TableMeta table) {
+        if(!strategy.isRootTable(table)) {
+            return;
+        }
+
+        String tableName = table.getName();
+        ClassName className = strategy.controllerClassName(tableName);
+        TypeSpec.Builder ts = TypeSpec.classBuilder(className.simpleName())
+                .addModifiers(Modifier.PUBLIC)
+                .addAnnotation(RestController.class);
+
+        String serviceClazzNameLC = StringUtils.toLC(strategy.serviceClazzName(tableName));
+
+        ts.addField(FieldSpec.builder(strategy.serviceClassName(tableName), serviceClazzNameLC, Modifier.PRIVATE)
+                .addAnnotation(Autowired.class)
+                .build());
+
+        generateCreater(ts, table);
+        generateUpdater(ts, table);
+        if(table.hasUniqKey()) {
+            generateFlatGetter(ts, table);
+        } else {
+            generateGetter(ts, table);
+        }
+        generateLister(ts, table);
+
+        output(strategy.getIndent(), strategy.getApiDirectory(), strategy.apiPackageName(tableName), ts.build());
+
+    }
+
+    private void generateCreater(TypeSpec.Builder ts, TableMeta table) {
+        String serviceClazzNameLC = StringUtils.toLC(strategy.serviceClazzName(table.getName()));
+        MethodSpec.Builder b = generateMethod(table, "create");
+        b.returns(void.class);
+
+        b.addCode(CodeBlock.builder()
+                .addStatement("$L.$L(entity)", serviceClazzNameLC, b.build().name)
+                .build());
+
+        ts.addMethod(b.build());
+    }
+
+    private void generateUpdater(TypeSpec.Builder ts, TableMeta table) {
+        String serviceClazzNameLC = StringUtils.toLC(strategy.serviceClazzName(table.getName()));
+        MethodSpec.Builder b = generateMethod(table, "update");
+        b.returns(void.class);
+
+        b.addCode(CodeBlock.builder()
+                .addStatement("$L.$L(entity)", serviceClazzNameLC, b.build().name)
+                .build());
+
+        ts.addMethod(b.build());
+    }
+
+    private void generateGetter(TypeSpec.Builder ts, TableMeta table) {
+        String serviceClazzNameLC = StringUtils.toLC(strategy.serviceClazzName(table.getName()));
+        String tableName = table.getName();
+        ClassName pojoCN = strategy.pojoClassName(tableName);
+
+        MethodSpec.Builder b = generateMethod(table, "get");
+        b.returns(pojoCN);
+
+        b.addCode(CodeBlock.builder()
+                .addStatement("return $L.$L(entity)", serviceClazzNameLC, b.build().name)
+                .build());
+        ts.addMethod(b.build());
+    }
+
+    private void generateFlatGetter(TypeSpec.Builder ts, TableMeta table) {
+        String serviceClazzNameLC = StringUtils.toLC(strategy.serviceClazzName(table.getName()));
+
+        String tableName = table.getName();
+        ClassName intrCN = strategy.interfaceClassName(tableName);
+        ClassName pojoCN = strategy.pojoClassName(tableName);
+
+        String path = String.format("/api/%s/info", intrCN.simpleName());
+        MethodSpec.Builder b = MethodSpec.methodBuilder("get" + intrCN.simpleName())
+                .addModifiers(Modifier.PUBLIC)
+                .addAnnotation(AnnotationSpec.builder(PostMapping.class).addMember("value", "$S", path).build());
+
+        List<String> paramrers = new ArrayList<>();
+        for (FieldMeta f : table.fields()) {
+            if(f.isUniqKey()) {
+                ParameterSpec p = ParameterSpec.builder(f.getType(), StringUtils.toCamelCaseLC(f.getName()))
+                        .addAnnotation(RequestParam.class)
+                        .build();
+                b.addParameter(p);
+                paramrers.add(StringUtils.toCamelCaseLC(f.getName()));
+            }
+        }
+        b.returns(pojoCN);
+
+        b.addCode(CodeBlock.builder()
+                .addStatement("return $L.$L($L)", serviceClazzNameLC, b.build().name, StringUtils.join(paramrers.toArray(new String[0]), ", "))
+                .build());
+
+        ts.addMethod(b.build());
+    }
+
+    private void generateLister(TypeSpec.Builder ts, TableMeta table) {
+        String serviceClazzNameLC = StringUtils.toLC(strategy.serviceClazzName(table.getName()));
+        String tableName = table.getName();
+        ClassName pojoCN = strategy.pojoClassName(tableName);
+
+        MethodSpec.Builder b = generateMethod(table, "list");
+        b.returns(ParameterizedTypeName.get(ClassName.get(List.class), pojoCN));
+        b.addCode(CodeBlock.builder()
+                .addStatement("return $L.$L(entity)", serviceClazzNameLC, b.build().name)
+                .build());
+
+        ts.addMethod(b.build());
+    }
+
+    private MethodSpec.Builder generateMethod(TableMeta table, String type) {
+        String tableName = table.getName();
+        ClassName intrCN = strategy.interfaceClassName(tableName);
+        ClassName pojoCN = strategy.pojoClassName(tableName);
+        String path = String.format("/api/%s/%s", intrCN.simpleName(), type);
+        MethodSpec.Builder b = MethodSpec.methodBuilder(type + intrCN.simpleName())
+                .addModifiers(Modifier.PUBLIC)
+                .addAnnotation(AnnotationSpec.builder(PostMapping.class).addMember("value", "$S", path).build())
+                .addParameter(ParameterSpec.builder(pojoCN, "entity").addAnnotation(RequestBody.class).build());
+        return b;
     }
 }
