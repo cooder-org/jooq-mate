@@ -286,8 +286,12 @@ public class TypeGeneratorStrategy extends GeneratorStrategy {
         return getTypePackageName() + ".records" + subpackage(tableName);
     }
 
+    public String jooqTablePackageName() {
+        return getJooqPackageName() + ".tables";
+    }
+
     public String jooqRecordPackageName() {
-        return getJooqPackageName() + ".tables.records";
+        return jooqTablePackageName() + ".records";
     }
 
     public String interfaceClazzName(String tableName) {
@@ -324,6 +328,10 @@ public class TypeGeneratorStrategy extends GeneratorStrategy {
 
     public ClassName jooqRecordClassName(String tableName) {
         return ClassName.get(jooqRecordPackageName(), recordClazzName(tableName));
+    }
+
+    public ClassName jooqTableClassName(String tableName) {
+        return ClassName.get(jooqTablePackageName(), interfaceClazzName(tableName));
     }
 
     public ClassName pojoClassName(String tableName) {

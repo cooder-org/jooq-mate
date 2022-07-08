@@ -15,6 +15,7 @@ import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.SelectConditionStep;
 import org.jooq.Table;
+import org.jooq.UpdateConditionStep;
 import org.jooq.impl.DSL;
 import org.jooq.tools.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -528,10 +529,12 @@ class RepoGenerator implements Generator {
                 .build());
 
         generateCreater(ts, table);
-        generateUpdater(ts, table);
         if(table.hasUniqKey()) {
+            generateUpdaterwhere(ts, table);
             generateFlatGetter(ts, table);
+
         } else {
+            generateUpdater(ts, table);
             generateGetter(ts, table);
         }
         generateLister(ts, table);
@@ -557,6 +560,24 @@ class RepoGenerator implements Generator {
         b.addCode(CodeBlock.builder()
                 .addStatement("rec.update()")
                 .build());
+
+        ts.addMethod(b.build());
+    }
+
+    private void generateUpdaterwhere(TypeSpec.Builder ts, TableMeta table) {
+        MethodSpec.Builder b = generateMethod(table, "update");
+        addSuppressWarnings(b);
+        b.returns(void.class);
+
+        for (FieldMeta f : table.fields()) {
+            if(f.isUniqKey()) {
+                b.addStatement("$T sql = db.update(rec.getTable()).set(rec).where($T.noCondition())", UpdateConditionStep.class, DSL.class)
+                        .addStatement("sql = sql.and(table.field($S, $T.class).eq(rec.get($S, $T.class)))", f.getName(), f.getType(), f.getName(),
+                                f.getType());
+
+            }
+        }
+        b.addStatement("sql.execute()");
 
         ts.addMethod(b.build());
     }
@@ -647,7 +668,9 @@ class RepoGenerator implements Generator {
         ClassName jooqRecordCN = strategy.jooqRecordClassName(tableName);
         b.addStatement("$T rec  = new $T()", jooqRecordCN, jooqRecordCN);
         b.addStatement("rec.from(entity)");
+        b.addStatement("$T<$T> table = rec.getTable()", org.jooq.Table.class, jooqRecordCN);
         b.addStatement("rec.attach(db.configuration())");
+        b.addCode("\n");
         return b;
     }
 
