@@ -515,7 +515,7 @@ class RepoGenerator implements Generator {
     @Override
     public void generate(TableMeta table) {
         String tableName = table.getName();
-        if(!strategy.isRootTable(table) || !strategy.isGenerateRepo(tableName)) {
+        if(!strategy.isGenerateRepo(tableName)) {
             return;
         }
 
@@ -568,13 +568,11 @@ class RepoGenerator implements Generator {
         MethodSpec.Builder b = generateMethod(table, "update");
         addSuppressWarnings(b);
         b.returns(void.class);
-
+        b.addStatement("$T sql = db.update(rec.getTable()).set(rec).where($T.noCondition())", UpdateConditionStep.class, DSL.class);
         for (FieldMeta f : table.fields()) {
             if(f.isUniqKey()) {
-                b.addStatement("$T sql = db.update(rec.getTable()).set(rec).where($T.noCondition())", UpdateConditionStep.class, DSL.class)
-                        .addStatement("sql = sql.and(table.field($S, $T.class).eq(rec.get($S, $T.class)))", f.getName(), f.getType(), f.getName(),
-                                f.getType());
-
+                b.addStatement("sql = sql.and(table.field($S, $T.class).eq(rec.get($S, $T.class)))",
+                        f.getName(), f.getType(), f.getName(), f.getType());
             }
         }
         b.addStatement("sql.execute()");
@@ -622,7 +620,8 @@ class RepoGenerator implements Generator {
 
         ClassName jooqRecordCN = strategy.jooqRecordClassName(tableName);
         b.addStatement("$T rec  = new $T()", jooqRecordCN, jooqRecordCN);
-        b.addStatement("$T table = rec.getTable()", Table.class)
+        b.addStatement("$T table = rec.getTable()", Table.class);
+        b.addCode("\n")
                 .addStatement("$T sql = db.selectFrom(table).where($T.noCondition())", SelectConditionStep.class, DSL.class);
         for (FieldMeta f : table.fields()) {
             if(f.isUniqKey()) {
