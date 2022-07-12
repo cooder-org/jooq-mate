@@ -83,7 +83,7 @@ public class TypeGeneratorStrategy extends GeneratorStrategy {
     }
 
     public TypeGeneratorStrategy withDirectory(String directory) {
-        this.directory = directory;
+        setDirectory(directory);
         return this;
     }
 

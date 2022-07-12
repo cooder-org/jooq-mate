@@ -305,7 +305,7 @@ class TypeRecordGenerator implements Generator {
     }
 
     private void generateRecordFields(TypeSpec.Builder ts, FieldMeta[] fields) {
-        FieldSpec.Builder b = FieldSpec.builder(AbstractRecord.Field[].class, "FIELDS", Modifier.PRIVATE, Modifier.STATIC, Modifier.FINAL);
+        FieldSpec.Builder b = FieldSpec.builder(AbstractRecord.Field[].class, "FIELDS", Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL);
         com.squareup.javapoet.CodeBlock.Builder cb = CodeBlock.builder();
         cb.add("new Field[] {\n");
 
