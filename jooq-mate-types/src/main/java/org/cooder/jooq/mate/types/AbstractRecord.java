@@ -145,5 +145,6 @@ public abstract class AbstractRecord<T> {
         private final String desc;
         private final Class<?> type;
         private boolean uniqKey;
+        private String dbName;
     }
 }
