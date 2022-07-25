@@ -125,7 +125,7 @@ public class ProjectGenerator {
                     offset = src.length;
                 } else {
                     String key = text.substring(start + openToken.length(), end);
-                    String value = map.get(key);
+                    String value = map.containsKey(key) ? map.get(key) : openToken + key + closeToken;
                     builder.append(value == null ? "" : value.replaceAll("\\\\", "/"));
                     offset = end + closeToken.length();
                 }

@@ -11,9 +11,11 @@ import javax.annotation.Resource;
 import javax.lang.model.element.Modifier;
 
 import org.cooder.jooq.mate.types.AbstractRecord;
+import org.cooder.jooq.mate.types.db.RepoUtils;
 import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.SelectConditionStep;
+import org.jooq.SelectSelectStep;
 import org.jooq.Table;
 import org.jooq.UpdateConditionStep;
 import org.jooq.impl.DSL;
@@ -524,7 +526,6 @@ class RepoGenerator implements Generator {
         TypeSpec.Builder ts = TypeSpec.classBuilder(repoCN.simpleName())
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(Repository.class);
-
         ts.addField(FieldSpec.builder(DSLContext.class, "db", Modifier.PRIVATE)
                 .addAnnotation(Resource.class)
                 .build());
@@ -533,6 +534,7 @@ class RepoGenerator implements Generator {
         if(table.hasUniqKey()) {
             generateUpdaterwhere(ts, table);
             generateFlatGetter(ts, table);
+            generateFlatGetterAll(ts, table);
 
         } else {
             generateUpdater(ts, table);
@@ -623,16 +625,99 @@ class RepoGenerator implements Generator {
         b.addStatement("$T rec  = new $T()", jooqRecordCN, jooqRecordCN);
         b.addStatement("$T table = rec.getTable()", Table.class);
         b.addCode("\n")
-                .addStatement("$T sql = db.selectFrom(table).where($T.noCondition())", SelectConditionStep.class, DSL.class);
-        for (FieldMeta f : table.fields()) {
-            if(f.isUniqKey()) {
-                String nameLC = StringUtils.toCamelCaseLC(f.getName());
-                b.addStatement("sql = sql.and(table.field($S, $T.class).eq($L))", f.getName(), f.getType(), nameLC);
-            }
-        }
+                .addStatement("$T sql = db.selectFrom(table).where($L)", SelectConditionStep.class, generateMainTableWhere(table));
         b.addStatement("return sql.fetchOne().into($T.class)", pojoCN);
 
         ts.addMethod(b.build());
+    }
+
+    private CodeBlock generateMainTableWhere(TableMeta tm) {
+        com.squareup.javapoet.CodeBlock.Builder cb = CodeBlock.builder();
+        cb.add("$T.noCondition()", DSL.class);
+        for (FieldMeta f : tm.fields()) {
+            if(f.isUniqKey()) {
+                String nameLC = StringUtils.toCamelCaseLC(f.getName());
+                cb.add(".and(table.field($S, $T.class).eq($L))", f.getName(), f.getType(), nameLC);
+            }
+        }
+        return cb.build();
+    }
+
+    private void generateFlatGetterAll(TypeSpec.Builder ts, TableMeta table) {
+        String tableName = table.getName();
+        List<TableMeta> subTables = strategy.subTables(tableName);
+        if(subTables.isEmpty()) {
+            return;
+        }
+
+        ClassName intrCN = strategy.interfaceClassName(tableName);
+        ClassName pojoCN = strategy.pojoAllClassName(tableName);
+
+        MethodSpec.Builder b = MethodSpec.methodBuilder("get" + intrCN.simpleName() + "All")
+                .addModifiers(Modifier.PUBLIC);
+
+        List<String> keys = new ArrayList<>();
+        for (FieldMeta f : table.fields()) {
+            if(f.isUniqKey()) {
+                b.addParameter(f.getType(), StringUtils.toCamelCaseLC(f.getName()));
+                keys.add(f.getName().toUpperCase());
+            }
+        }
+
+        addSuppressWarnings(b);
+        b.returns(pojoCN);
+
+        b.addStatement(generateDefineVarTable("table", tableName));
+        subTables.forEach(st -> b.addStatement(generateDefineVarTable(strategy.jooqTableVarName(st.getName()), st.getName())));
+
+        b.addCode("\n");
+        b.addStatement("$T sql = db.select(table.fields())", SelectSelectStep.class);
+
+        subTables.forEach(st -> b.addStatement("sql = sql.select($T.field($L).as($S))", DSL.class, generateSubTableSelect(st, keys),
+                StringUtils.toCamelCaseLC(st.getName()) + "List"));
+
+        b.addStatement("return sql.from(table)\n"
+                + "    .where($L)\n"
+                + "    .fetchOne().into($T.class)", generateMainTableWhere(table), pojoCN);
+        ts.addMethod(b.build());
+    }
+
+    private CodeBlock generateSubTableSelect(TableMeta st, List<String> keys) {
+        com.squareup.javapoet.CodeBlock.Builder cb = CodeBlock.builder();
+
+        ClassName recordCN = strategy.recordClassName(st.getName());
+        String jooqTableVarName = strategy.jooqTableVarName(st.getName());
+
+        cb.add("$T.select($T.jsonArrayAgg($L, $T.FIELDS))\n"
+                + "    .from($L)\n"
+                + "    .where($L)\n",
+                DSL.class,
+                RepoUtils.class, jooqTableVarName, recordCN,
+                jooqTableVarName,
+                generateWhere(st, keys));
+        return cb.build();
+    }
+
+    private CodeBlock generateWhere(TableMeta st, List<String> keys) {
+        com.squareup.javapoet.CodeBlock.Builder cb = CodeBlock.builder();
+        String jooqTableVarName = strategy.jooqTableVarName(st.getName());
+
+        for (int i = 0; i < keys.size(); i++) {
+            String key = keys.get(i);
+            CodeBlock cbt = CodeBlock.builder().add("table.$L.eq($L.$L)", key, jooqTableVarName, key).build();
+            if(i == 0) {
+                cb.add(cbt);
+            } else {
+                cb.add(".and($L)", cbt);
+            }
+        }
+
+        return cb.build();
+    }
+
+    private CodeBlock generateDefineVarTable(String varName, String tableName) {
+        ClassName jooqTableCN = strategy.jooqTableClassName(tableName);
+        return CodeBlock.builder().add("$T $L = $T.$L", jooqTableCN, varName, jooqTableCN, tableName.toUpperCase()).build();
     }
 
     private void generateLister(TypeSpec.Builder ts, TableMeta table) {

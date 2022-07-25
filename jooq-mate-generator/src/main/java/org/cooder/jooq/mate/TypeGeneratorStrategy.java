@@ -354,6 +354,10 @@ public class TypeGeneratorStrategy extends GeneratorStrategy {
         return ClassName.get(apiPackageName(tableName), controllerClazzName(tableName));
     }
 
+    public String jooqTableVarName(String tableName) {
+        return StringUtils.toLC(interfaceClazzName(tableName)) + "Table";
+    }
+
     public boolean isGenerateRepo(String tableName) {
         return generateRepo;
     }
@@ -454,6 +458,5 @@ public class TypeGeneratorStrategy extends GeneratorStrategy {
 
         return true;
     }
-
 
 }
