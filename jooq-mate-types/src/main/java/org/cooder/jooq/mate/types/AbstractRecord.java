@@ -37,6 +37,10 @@ public abstract class AbstractRecord<T> {
         return fields;
     }
 
+    public Field field(String name) {
+        return fields[index(name)];
+    }
+
     public Object get(String name) {
         return get(index(name));
     }

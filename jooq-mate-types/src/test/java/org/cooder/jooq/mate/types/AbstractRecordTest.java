@@ -68,6 +68,11 @@ public class AbstractRecordTest {
         Assert.assertEquals(RecordImpl.FIELDS[0].getName(), fields[0].getName());
         Assert.assertEquals(RecordImpl.FIELDS[0].getDesc(), fields[0].getDesc());
         Assert.assertEquals(RecordImpl.FIELDS[0].getType(), fields[0].getType());
+
+        Field field = rec.field("houseLayoutCode");
+        Assert.assertEquals(RecordImpl.FIELDS[0].getName(), field.getName());
+        Assert.assertEquals(RecordImpl.FIELDS[0].getDesc(), field.getDesc());
+        Assert.assertEquals(RecordImpl.FIELDS[0].getType(), field.getType());
     }
 
     @Test
