@@ -43,6 +43,8 @@ public class AbstractRecordTest {
 
     @Test
     public final void testAbstractRecord() {
+        Assert.assertEquals(true, RecordImpl.FIELDS[0].isUpdatable());
+
         RecordImpl rec = new RecordImpl();
         RecordEntity pojo = RecordEntity.builder().houseLayoutCode("1001").build();
         rec.fromPojo(pojo);

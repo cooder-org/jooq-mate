@@ -7,6 +7,7 @@ import java.util.Objects;
 
 import org.cooder.jooq.mate.utils.TypeUtils;
 
+import lombok.Builder;
 import lombok.Getter;
 import lombok.experimental.SuperBuilder;
 
@@ -150,5 +151,8 @@ public abstract class AbstractRecord<T> {
         private final Class<?> type;
         private boolean uniqKey;
         private String dbName;
+
+        @Builder.Default
+        private boolean updatable = true;
     }
 }
