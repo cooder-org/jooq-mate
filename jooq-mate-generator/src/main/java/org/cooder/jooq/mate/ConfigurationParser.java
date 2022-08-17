@@ -314,6 +314,9 @@ public class ConfigurationParser {
         private boolean generateRecord;
         private boolean generatePojo;
         private boolean generatePojoWithLombok;
+        private boolean generateRepo;
+        private boolean generateService;
+        private boolean generateApi;
 
         @Getter
         @Setter

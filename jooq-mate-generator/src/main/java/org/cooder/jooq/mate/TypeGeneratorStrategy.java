@@ -58,7 +58,15 @@ public class TypeGeneratorStrategy extends GeneratorStrategy {
 
     @Setter
     @Accessors(fluent = true)
-    private boolean generateRepo = true;
+    private boolean generateRepo;
+
+    @Setter
+    @Accessors(fluent = true)
+    private boolean generateService;
+
+    @Setter
+    @Accessors(fluent = true)
+    private boolean generateApi;
 
     private NameConverter interfaceNameConverter;
     private NameConverter recordNameConverter;
@@ -360,6 +368,14 @@ public class TypeGeneratorStrategy extends GeneratorStrategy {
 
     public boolean isGenerateRepo(String tableName) {
         return generateRepo;
+    }
+
+    public boolean isGenerateService(String tableName) {
+        return generateService;
+    }
+
+    public boolean isGenerateApi(String tableName) {
+        return generateApi;
     }
 
     public String getRepoDirectory() {

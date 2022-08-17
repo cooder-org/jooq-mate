@@ -777,7 +777,7 @@ class ServiceGenerator implements Generator {
 
     @Override
     public void generate(TableMeta table) {
-        if(!strategy.isRootTable(table)) {
+        if(!strategy.isRootTable(table) || !strategy.isGenerateService(table.getName())) {
             return;
         }
 
@@ -912,7 +912,9 @@ class ApiGenerator implements Generator {
 
     @Override
     public void generate(TableMeta table) {
-        generateRestController(table);
+        if(strategy.isGenerateApi(table.getName())) {
+            generateRestController(table);
+        }
     }
 
     private void generateRestController(TableMeta table) {

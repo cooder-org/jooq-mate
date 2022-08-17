@@ -77,6 +77,9 @@ public class TypeGenerator implements Generator {
                 .generateRecord(mc.isGenerateRecord())
                 .generatePojo(mc.isGeneratePojo())
                 .generatePojoWithLombok(mc.isGeneratePojoWithLombok())
+                .generateRepo(mc.isGenerateRepo())
+                .generateService(mc.isGenerateService())
+                .generateApi(mc.isGenerateApi())
                 .withInterfaceNameConverter((s, tableName) -> conf.getTableConfig(tableName).getJooqmateInterfaceName())
                 .withRecordNameConverter((s, tableName) -> conf.getTableConfig(tableName).getJooqmateRecordName())
                 .withPojoNameConverter((s, tableName) -> conf.getTableConfig(tableName).getJooqmatePojoName());

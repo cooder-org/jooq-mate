@@ -32,6 +32,8 @@ public class JooqGeneratorMateTest {
                     .generateInterface(true)
                     .generatePojo(true)
                     .generateRecord(true)
+                    .generateRepo(true)
+                    .generateService(true)
                     .withInterfaceNameConverter((sg, tableName) -> {
                         String name = StringUtils.toCamelCase(tableName);
                         if(name.equals("Space")) {
