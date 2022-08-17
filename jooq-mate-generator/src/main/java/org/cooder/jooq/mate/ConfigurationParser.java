@@ -416,7 +416,12 @@ public class ConfigurationParser {
             @ExcelProperty(index = 8)
             private boolean generateEnum = true;
 
+            @ExcelProperty(index = 9)
+            private boolean updatable = true;
+
             private boolean uniqKey;
+
+
 
             public String getComment() {
                 StringBuilder sb = new StringBuilder();

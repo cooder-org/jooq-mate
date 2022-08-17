@@ -79,6 +79,10 @@ interface FieldMeta {
     default boolean isGenerateEnum() {
         return true;
     }
+
+    default boolean isUpdatable() {
+        return true;
+    }
 }
 
 public interface Generator {
@@ -313,9 +317,9 @@ class TypeRecordGenerator implements Generator {
 
         for (int i = 0; i < fields.length; i++) {
             String fieldName = StringUtils.toCamelCaseLC(fields[i].getName());
-            cb.add(strategy.getIndent() + "$T.builder().name($S).type($T.class).desc($S).uniqKey($L).dbName($S).build(),\n",
+            cb.add(strategy.getIndent() + "$T.builder().name($S).type($T.class).desc($S).uniqKey($L).updatable($L).dbName($S).build(),\n",
                     AbstractRecord.Field.class,
-                    fieldName, fields[i].getType(), fields[i].getNameDesc(), fields[i].isUniqKey(), fields[i].getName());
+                    fieldName, fields[i].getType(), fields[i].getNameDesc(), fields[i].isUniqKey(), fields[i].isUpdatable(), fields[i].getName());
         }
         cb.add("}");
         b.initializer(cb.build());

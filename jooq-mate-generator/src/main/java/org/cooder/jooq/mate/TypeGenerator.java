@@ -249,6 +249,11 @@ public class TypeGenerator implements Generator {
         }
 
         @Override
+        public boolean isUpdatable() {
+            return fieldConfig.isUpdatable();
+        }
+
+        @Override
         public boolean isGenerateEnum() {
             return fieldConfig.isGenerateEnum();
         }
