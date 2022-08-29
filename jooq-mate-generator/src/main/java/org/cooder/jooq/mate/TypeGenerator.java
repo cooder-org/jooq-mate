@@ -1,7 +1,7 @@
 package org.cooder.jooq.mate;
 
 import java.math.BigDecimal;
-import java.time.LocalTime;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.cooder.jooq.mate.ConfigurationParser.Config;
@@ -211,7 +211,7 @@ public class TypeGenerator implements Generator {
             } else if(dataType.contains("DECIMAL")) {
                 clazz = BigDecimal.class;
             } else if(dataType.contains("TIMESTAMP")) {
-                clazz = LocalTime.class;
+                clazz = LocalDateTime.class;
             }
             return clazz;
         }
