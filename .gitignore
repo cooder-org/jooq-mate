@@ -13,3 +13,6 @@ buildNumber.properties
 .classpath
 .settings/
 .DS_Store
+.idea
+.iml
+*/*.iml
