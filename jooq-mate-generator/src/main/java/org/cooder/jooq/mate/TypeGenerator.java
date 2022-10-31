@@ -212,6 +212,8 @@ public class TypeGenerator implements Generator {
                 clazz = BigDecimal.class;
             } else if(dataType.contains("TIMESTAMP")) {
                 clazz = LocalDateTime.class;
+            } else if(dataType.contains("DATETIME")) {
+                clazz = LocalDateTime.class;
             }
             return clazz;
         }
