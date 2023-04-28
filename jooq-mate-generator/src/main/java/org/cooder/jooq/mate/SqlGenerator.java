@@ -56,14 +56,14 @@ public class SqlGenerator {
                     fc.getComment())));
 
             if(!StringUtils.isEmpty(tc.getPrimaryKey())) {
-                sb.append(String.format("  PRIMARY KEY (`%s`),\n", tc.getPrimaryKey()));
+                sb.append(String.format("\n  PRIMARY KEY (`%s`),", tc.getPrimaryKey()));
             }
 
             if(Objects.nonNull(tc.getUniqueKey())) {
                 UniqKey uk = tc.getUniqueKey();
                 String[] vs = uk.getValue().split(",");
                 String value = Arrays.asList(vs).stream().map(v -> String.format("`%s`", v.trim())).collect(Collectors.joining(","));
-                sb.append(String.format("  UNIQUE KEY %s (%s),", uk.getName(), value));
+                sb.append(String.format("\n  UNIQUE KEY %s (%s),", uk.getName(), value));
             }
 
             if(sb.charAt(sb.length() - 1) == ',') {
